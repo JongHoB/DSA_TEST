@@ -41,14 +41,14 @@ static void * map_wq(void)
 	accfg_new(&ctx);
 	accfg_device_foreach(ctx, device) {
 		/* Use accfg_device_(*) functions to select enabled device
-		 *          * based on name, numa node
-		 *                   */
+		 * based on name, numa node
+		 * */
 		accfg_wq_foreach(device, wq) {
 			if (accfg_wq_get_user_dev_path(wq, path, sizeof(path)))
 				continue;
 			/* Use accfg_wq_(*) functions select WQ of type
-			 *              * ACCFG_WQT_USER and desired mode
-			 *                           */
+			 ** ACCFG_WQT_USER and desired mode
+			 **/
 			wq_found = accfg_wq_get_type(wq) == ACCFG_WQT_USER &&
 				accfg_wq_get_mode(wq) == ACCFG_WQ_SHARED;
 			if (wq_found)
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 {
 
 	struct timeval start,end;
-        double s,e;
+	double s,e;
 
 	void *wq_portal;
 	struct dsa_hw_desc desc = { };
@@ -88,10 +88,10 @@ int main(int argc, char *argv[])
 	memset(src, 0xaa, BLEN);
 	desc.opcode = DSA_OPCODE_MEMMOVE;
 	/*
-	 *      * Request a completion – since we poll on status, this flag
-	 *           * must be 1 for status to be updated on successful
-	 *                * completion
-	 *                     */
+	 ** Request a completion – since we poll on status, this flag
+	 ** must be 1 for status to be updated on successful
+	 ** completion
+	 **/
 	desc.flags = IDXD_OP_FLAG_RCR;
 	/* CRAV should be 1 since RCR = 1 */
 	desc.flags |= IDXD_OP_FLAG_CRAV;
@@ -106,7 +106,10 @@ retry:
 	/* Ensure previous writes are ordered with respect to ENQCMD */
 	_mm_sfence();
 	enq_retry = 0;
+	//////////////////////////////////////////////////////////////
 	gettimeofday(&start,NULL);
+	/////
+	
 	while (enqcmd(wq_portal, &desc) && enq_retry++ < ENQ_RETRY_MAX) ;
 	if (enq_retry == ENQ_RETRY_MAX) {
 		printf("ENQCMD retry limit exceeded\n");
@@ -116,7 +119,9 @@ retry:
 	poll_retry = 0;
 	while (comp.status == 0 && poll_retry++ < POLL_RETRY_MAX)
 		_mm_pause();
+	/////
 	gettimeofday(&end,NULL);
+	/////////////////////////////////////////////////////////////
 	if (poll_retry == POLL_RETRY_MAX) {
 		printf("Completion status poll retry limit exceeded\n");
 		rc = EXIT_FAILURE;
@@ -144,13 +149,15 @@ retry:
 	}
 done:
 	munmap(wq_portal, WQ_PORTAL_SIZE);
+	
+	///////////////////////////////////////////
 	s=(start.tv_sec)*1000+(start.tv_usec)/1000;
-        printf("%ld %ld\n",start.tv_sec,start.tv_usec);
-        e=(end.tv_sec)*1000+(end.tv_usec)/1000;
-        printf("%ld %ld\n",end.tv_sec,end.tv_usec);
-
-
-        printf("memmove time in dsa: %f\n",(e-s)/1000);
+	printf("%ld %ld\n",start.tv_sec,start.tv_usec);
+	e=(end.tv_sec)*1000+(end.tv_usec)/1000;
+	printf("%ld %ld\n",end.tv_sec,end.tv_usec);
+	
+	printf("memmove time in dsa: %f\n",(e-s)/1000);
 	printf("size dst: %d\n",sizeof(dst)/sizeof(char));
+	//////////////////////////////////////////
 	return rc;
 }

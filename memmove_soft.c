@@ -17,10 +17,13 @@ int main()
 	char dst[BLEN];
 
 	memset(src, 0xaa, BLEN);
-
+	/////////////////////////
 	gettimeofday(&start,NULL);
+	///////
 	memmove(dst,src,BLEN);
+	///////
 	gettimeofday(&end,NULL);
+	////////////////////////
 	s=(start.tv_sec)*1000+(start.tv_usec)/1000;
 	printf("%ld %ld\n",start.tv_sec,start.tv_usec);
 	e=(end.tv_sec)*1000+(end.tv_usec)/1000;
@@ -28,9 +31,9 @@ int main()
 	
 
 	printf("memmove time in soft: %f\n",(e-s)/1000);
-	
+
 	int rc=memcmp(src,dst,BLEN);
-	rc?printf("memmove failed\n"):printf("memmove successful\n");
+	rc	?	printf("memmove failed\n")	:	printf("memmove successful\n");
 
 	return 0;
 }
