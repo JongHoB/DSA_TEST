@@ -11,7 +11,7 @@
 
 #include <x86intrin.h>
 
-#define BLEN            4096
+#define BLEN            4096<<2
 #define WQ_PORTAL_SIZE  4096
 
 #define ENQ_RETRY_MAX   1000
@@ -71,6 +71,10 @@ static void * map_wq(void)
 
 int main(int argc, char *argv[])
 {
+
+	struct timeval start,end;
+        double s,e;
+
 	void *wq_portal;
 	struct dsa_hw_desc desc = { };
 	char src[BLEN];
@@ -102,6 +106,7 @@ retry:
 	/* Ensure previous writes are ordered with respect to ENQCMD */
 	_mm_sfence();
 	enq_retry = 0;
+	gettimeofday(&start,NULL);
 	while (enqcmd(wq_portal, &desc) && enq_retry++ < ENQ_RETRY_MAX) ;
 	if (enq_retry == ENQ_RETRY_MAX) {
 		printf("ENQCMD retry limit exceeded\n");
@@ -111,6 +116,7 @@ retry:
 	poll_retry = 0;
 	while (comp.status == 0 && poll_retry++ < POLL_RETRY_MAX)
 		_mm_pause();
+	gettimeofday(&end,NULL);
 	if (poll_retry == POLL_RETRY_MAX) {
 		printf("Completion status poll retry limit exceeded\n");
 		rc = EXIT_FAILURE;
@@ -130,7 +136,7 @@ retry:
 			printf("desc failed status %u\n", comp.status);
 			rc = EXIT_FAILURE;
 		}
-	} else {
+	} else {	
 		printf("desc successful\n");
 		rc = memcmp(src, dst, BLEN);
 		rc ? printf("memmove failed\n") : printf("memmove successful\n");
@@ -138,5 +144,13 @@ retry:
 	}
 done:
 	munmap(wq_portal, WQ_PORTAL_SIZE);
+	s=(start.tv_sec)*1000+(start.tv_usec)/1000;
+        printf("%ld %ld\n",start.tv_sec,start.tv_usec);
+        e=(end.tv_sec)*1000+(end.tv_usec)/1000;
+        printf("%ld %ld\n",end.tv_sec,end.tv_usec);
+
+
+        printf("memmove time in dsa: %f\n",(e-s)/1000);
+	printf("size dst: %d\n",sizeof(dst)/sizeof(char));
 	return rc;
 }
