@@ -11,11 +11,13 @@
 
 #include <x86intrin.h>
 
-#define BLEN            4096<<4
+#define BLEN            4096<<0
 #define WQ_PORTAL_SIZE  4096
 
 #define ENQ_RETRY_MAX   1000
 #define POLL_RETRY_MAX  10000
+
+#define UMWAIT_DELAY 100000
 
 static uint8_t op_status(uint8_t status)
 {
@@ -28,6 +30,23 @@ static inline  unsigned int enqcmd(void *dst, const void *src)
 			"setz %0\t\n"
 			: "=r"(retry) : "a" (dst), "d" (src));
 	return (unsigned int)retry;
+}
+static __always_inline inline void umonitor(const volatile void *addr)
+{
+	asm volatile(".byte 0xf3, 0x48, 0x0f, 0xae, 0xf0" : : "a"(addr));
+}
+
+static __always_inline inline int umwait(unsigned long timeout, unsigned int state)
+{
+	uint8_t r;
+	uint32_t timeout_low = (uint32_t)timeout;
+	uint32_t timeout_high = (uint32_t)(timeout >> 32);
+
+	asm volatile(".byte 0xf2, 0x48, 0x0f, 0xae, 0xf1\t\n"
+			"setc %0\t\n"
+			: "=r"(r)
+			: "c"(state), "a"(timeout_low), "d"(timeout_high));
+	return r;
 }
 static void * map_wq(void)
 {
@@ -57,7 +76,7 @@ static void * map_wq(void)
 			{
 				printf("wq user device file path: %s\n",accfg_wq_get_devname(wq));
 				break;
-}
+			}
 		}
 		if (wq_found)
 			break;
@@ -114,7 +133,7 @@ retry:
 	//////////////////////////////////////////////////////////////
 	gettimeofday(&start,NULL);
 	/////
-	
+
 	while (enqcmd(wq_portal, &desc) && enq_retry++ < ENQ_RETRY_MAX) ;
 	if (enq_retry == ENQ_RETRY_MAX) {
 		printf("ENQCMD retry limit exceeded\n");
@@ -123,7 +142,14 @@ retry:
 	}
 	poll_retry = 0;
 	while (comp.status == 0 && poll_retry++ < POLL_RETRY_MAX)
-		_mm_pause();
+	{
+		//_mm_pause();
+		umonitor(&comp);
+		if(comp.status==0){
+			uint64_t delay=__rdtsc() + UMWAIT_DELAY;
+			umwait(delay,1);
+		}
+	}
 	/////
 	gettimeofday(&end,NULL);
 	/////////////////////////////////////////////////////////////
