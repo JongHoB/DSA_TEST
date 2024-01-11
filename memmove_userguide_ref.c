@@ -11,7 +11,7 @@
 
 #include <x86intrin.h>
 
-#define BLEN            4096<<2
+#define BLEN            4096<<4
 #define WQ_PORTAL_SIZE  4096
 
 #define ENQ_RETRY_MAX   1000
@@ -46,13 +46,18 @@ static void * map_wq(void)
 		accfg_wq_foreach(device, wq) {
 			if (accfg_wq_get_user_dev_path(wq, path, sizeof(path)))
 				continue;
+			if(accfg_wq_get_max_transfer_size(wq)<BLEN)
+				continue;
 			/* Use accfg_wq_(*) functions select WQ of type
 			 ** ACCFG_WQT_USER and desired mode
 			 **/
 			wq_found = accfg_wq_get_type(wq) == ACCFG_WQT_USER &&
 				accfg_wq_get_mode(wq) == ACCFG_WQ_SHARED;
 			if (wq_found)
+			{
+				printf("wq user device file path: %s\n",accfg_wq_get_devname(wq));
 				break;
+}
 		}
 		if (wq_found)
 			break;

@@ -31,6 +31,7 @@ int main()
 	
 
 	printf("memmove time in soft: %f\n",(e-s)/1000);
+	printf("size dst: %d\n",sizeof(dst)/sizeof(char));
 
 	int rc=memcmp(src,dst,BLEN);
 	rc	?	printf("memmove failed\n")	:	printf("memmove successful\n");
