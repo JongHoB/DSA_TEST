@@ -7,7 +7,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#define BLEN            4096<<4
+#define BLEN            4096<<8
 
 int main()
 {

@@ -11,7 +11,7 @@
 
 #include <x86intrin.h>
 
-#define BLEN            4096<<8
+#define BLEN            4096<<0
 #define WQ_PORTAL_SIZE  4096
 
 #define ENQ_RETRY_MAX   1000
@@ -135,7 +135,6 @@ retry:
 	/////
 
 	while (enqcmd(wq_portal, &desc) && enq_retry++ < ENQ_RETRY_MAX) ;
-	
 	if (enq_retry == ENQ_RETRY_MAX) {
 		printf("ENQCMD retry limit exceeded\n");
 		rc = EXIT_FAILURE;
@@ -152,7 +151,7 @@ retry:
 		}
 	}
 	/////
-gettimeofday(&end,NULL);
+	gettimeofday(&end,NULL);
 	/////////////////////////////////////////////////////////////
 	if (poll_retry == POLL_RETRY_MAX) {
 		printf("Completion status poll retry limit exceeded\n");
