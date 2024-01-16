@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <sys/time.h>
 #include <string.h>
 #include "mmap_to_userspace.h"
 
@@ -53,11 +54,15 @@ out:
 
 int main(int argc, const char **argv)
 {
+	struct timeval start, end;
+	double s, e;
 	int fd, test;
 	char *addr;
 	int len = NPAGES * getpagesize();
 	int i;
 	unsigned long usage_mmap;
+
+	char dst[len];
 
 	system("mknod " MMAP_DEV " c 42 0");
 
@@ -85,9 +90,25 @@ int main(int argc, const char **argv)
 		printf("%s\n", addr + i);
 	}
 
-	usage_mmap = show_mem_usage();
-	if (usage_mmap < 0)
-		printf("failed to show memory usage\n");
+	// usage_mmap = show_mem_usage();
+	// if (usage_mmap < 0)
+	// 	printf("failed to show memory usage\n");
+
+	/////////////////////////
+	gettimeofday(&start, NULL);
+	///////
+	memmove(dst, addr, len);
+	///////
+	gettimeofday(&end, NULL);
+	////////////////////////
+	printf("%ld %ld\n", start.tv_sec, start.tv_usec);
+	printf("%ld %ld\n", end.tv_sec, end.tv_usec);
+
+	printf("memmove time in soft: %ld\n", end.tv_usec - start.tv_usec);
+	printf("size dst: %d\n", len);
+
+	int rc = memcmp(addr, dst, len);
+	rc ? printf("memmove failed\n") : printf("memmove successful\n");
 
 	close(fd);
 

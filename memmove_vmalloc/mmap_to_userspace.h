@@ -1,7 +1,7 @@
-#define NPAGES		16
+#define NPAGES 512
 #ifndef __SO2MMAP_H__
 #define __SO2MMAP_H__ 1
 
-#define PROC_ENTRY_NAME	"my-proc-entry"
+#define PROC_ENTRY_NAME "my-proc-entry"
 
 #endif

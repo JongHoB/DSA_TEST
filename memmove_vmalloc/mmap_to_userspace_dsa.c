@@ -1,17 +1,33 @@
+// This code is modified by Jongho Baik and the original code is from Linux Kernel Lab.
+/*
+ * PSO - Memory Mapping Lab (#11)
+ *
+ * Exercise #1, #2: memory mapping between user-space and kernel-space
+ *
+ * test case
+ */
+
 #include <stdio.h>
-#include <stdint.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <string.h>
 #include <sys/mman.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <string.h>
+#include "mmap_to_userspace.h"
 #include <linux/idxd.h>
 #include <accel-config/libaccel_config.h>
 
 #include <x86intrin.h>
 
-#define BLEN 4096 << 8
+#define MMAP_DEV "/dev/mymmap"
+#define PROC_ENTRY_PATH "/proc/" PROC_ENTRY_NAME
+
 #define WQ_PORTAL_SIZE 4096
 
 #define ENQ_RETRY_MAX 1000
@@ -48,7 +64,7 @@ static __always_inline inline int umwait(unsigned long timeout, unsigned int sta
 				 : "c"(state), "a"(timeout_low), "d"(timeout_high));
 	return r;
 }
-static void *map_wq(void)
+static void *map_wq(int BLEN)
 {
 	void *wq_portal;
 	struct accfg_ctx *ctx;
@@ -94,23 +110,86 @@ static void *map_wq(void)
 	return wq_portal;
 }
 
-int main(int argc, char *argv[])
+static int show_mem_usage(void)
 {
+	int fd, ret;
+	char buf[40];
+	unsigned long mem_usage;
 
+	fd = open(PROC_ENTRY_PATH, O_RDONLY);
+	if (fd < 0)
+	{
+		perror("open " PROC_ENTRY_PATH);
+		ret = fd;
+		goto out;
+	}
+
+	ret = read(fd, buf, sizeof buf);
+	if (ret < 0)
+		goto no_read;
+
+	sscanf(buf, "%lu", &mem_usage);
+	buf[ret] = 0;
+
+	printf("Memory usage: %lu\n", mem_usage);
+
+	ret = mem_usage;
+no_read:
+	close(fd);
+out:
+	return ret;
+}
+
+int main(int argc, const char **argv)
+{
 	struct timeval start, end;
 	double s, e;
+	int fd, test;
+	char *addr;
+	int len = NPAGES * getpagesize();
+	int i;
+	unsigned long usage_mmap;
+
+	char dst[len];
+
+	system("mknod " MMAP_DEV " c 42 0");
+
+	fd = open(MMAP_DEV, O_RDWR | O_SYNC);
+	if (fd < 0)
+	{
+		perror("open");
+		system("rm " MMAP_DEV);
+		exit(EXIT_FAILURE);
+	}
+
+	addr = (char *)mmap(NULL, len, PROT_READ, MAP_SHARED, fd, 0);
+	if (addr == MAP_FAILED)
+	{
+		perror("mmap");
+		system("rm " MMAP_DEV);
+		exit(EXIT_FAILURE);
+	}
+
+	for (i = 0; i < NPAGES * getpagesize(); i += getpagesize())
+	{
+		// In each page, sprintf(vmalloc_area + i, "Hello World %d", i / PAGE_SIZE); is executed.
+		// So, in each page, "Hello World %d" is written.
+		// print the content of each page
+		printf("%s\n", addr + i);
+	}
+
+	// usage_mmap = show_mem_usage();
+	// if (usage_mmap < 0)
+	// 	printf("failed to show memory usage\n");
 
 	void *wq_portal;
 	struct dsa_hw_desc desc = {};
-	char src[BLEN];
-	char dst[BLEN];
 	struct dsa_completion_record comp __attribute__((aligned(32)));
 	int rc;
 	int poll_retry, enq_retry;
-	wq_portal = map_wq();
+	wq_portal = map_wq(len);
 	if (wq_portal == MAP_FAILED)
 		return EXIT_FAILURE;
-	memset(src, 0xaa, BLEN);
 	desc.opcode = DSA_OPCODE_MEMMOVE;
 	/*
 	 ** Request a completion – since we poll on status, this flag
@@ -122,8 +201,8 @@ int main(int argc, char *argv[])
 	desc.flags |= IDXD_OP_FLAG_CRAV;
 	/* Hint to direct data writes to CPU cache */
 	desc.flags |= IDXD_OP_FLAG_CC;
-	desc.xfer_size = BLEN;
-	desc.src_addr = (uintptr_t)src;
+	desc.xfer_size = len;
+	desc.src_addr = (uintptr_t)addr;
 	desc.dst_addr = (uintptr_t)dst;
 	desc.completion_addr = (uintptr_t)&comp;
 retry:
@@ -186,19 +265,22 @@ retry:
 	else
 	{
 		printf("desc successful\n");
-		rc = memcmp(src, dst, BLEN);
+		rc = memcmp(addr, dst, len);
 		rc ? printf("memmove failed\n") : printf("memmove successful\n");
 		rc = rc ? EXIT_FAILURE : EXIT_SUCCESS;
 	}
 done:
 	munmap(wq_portal, WQ_PORTAL_SIZE);
 
-	///////////////////////////////////////////
 	printf("%ld %ld\n", start.tv_sec, start.tv_usec);
 	printf("%ld %ld\n", end.tv_sec, end.tv_usec);
 
-	printf("memmove time in dsa: %ld\n", end.tv_usec - start.tv_usec);
-	printf("size dst: %d\n", sizeof(dst) / sizeof(char));
-	//////////////////////////////////////////
-	return rc;
+	printf("memmove time in soft: %ld\n", end.tv_usec - start.tv_usec);
+	printf("size dst: %d\n", len);
+
+	close(fd);
+
+	system("rm " MMAP_DEV);
+
+	return 0;
 }

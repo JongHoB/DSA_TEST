@@ -230,7 +230,7 @@ static int __init my_init(void)
 		sprintf(vmalloc_area + i, "Hello World %d", i / PAGE_SIZE);
 
 		// Rest of the page is filled with 0
-		memset(vmalloc_area + i + strlen("Hello World %d"), 0, PAGE_SIZE - strlen("Hello World %d"));
+		memset(vmalloc_area + i + strlen("Hello World ") + (i / PAGE_SIZE), 0, PAGE_SIZE - strlen("Hello World ") - (i / PAGE_SIZE));
 	}
 
 	cdev_init(&mmap_cdev, &mmap_fops);
