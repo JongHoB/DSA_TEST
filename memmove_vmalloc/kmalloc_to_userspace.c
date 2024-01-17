@@ -2,7 +2,7 @@
 /*
  * PSO - Memory Mapping Lab(#11)
  *
- * Exercise #2: memory mapping using vmalloc'd kernel areas
+ * Exercise #2: memory mapping using kmalloc'd kernel areas
  */
 
 #include <linux/version.h>
@@ -11,29 +11,29 @@
 #include <linux/fs.h>
 #include <linux/cdev.h>
 #include <linux/slab.h>
-#include <linux/vmalloc.h>
 #include <linux/sched.h>
 #include <linux/sched/mm.h>
 #include <linux/mm.h>
 #include <linux/mm_types.h>
 #include <asm/io.h>
+#include <asm/page.h>
 #include <linux/uaccess.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 
 #include "mmap_to_userspace.h"
 
-MODULE_DESCRIPTION("Non Contiguous Memory Mapping_vmalloc");
+MODULE_DESCRIPTION("Non Contiguous Memory Mapping_kmalloc");
 MODULE_AUTHOR("Jongho Baik");
 MODULE_LICENSE("Dual BSD/GPL");
 
-#define MY_MAJOR 42
+#define MY_MAJOR 43
 
 /* character device basic structure */
 static struct cdev mmap_cdev;
 
-/* pointer to the vmalloc'd area, rounded up to a page boundary */
-static char *vmalloc_area;
+/* pointer to the kmalloc'd area, rounded up to a page boundary */
+static char *kmalloc_area;
 
 static int my_open(struct inode *inode, struct file *filp)
 {
@@ -45,7 +45,7 @@ static int my_release(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-// Read from vmalloc_area to user_buffer
+// Read from kmalloc_area to user_buffer
 // This function is called when read() is called in user space
 static ssize_t my_read(struct file *file, char __user *user_buffer,
 					   size_t size, loff_t *offset)
@@ -55,13 +55,13 @@ static ssize_t my_read(struct file *file, char __user *user_buffer,
 		size = NPAGES * PAGE_SIZE;
 
 	/* TODO 2/2: copy from mapped area to user buffer */
-	if (copy_to_user(user_buffer, vmalloc_area, size))
+	if (copy_to_user(user_buffer, kmalloc_area, size))
 		return -EFAULT;
 
 	return size;
 }
 
-// Write from user_buffer to vmalloc_area
+// Write from user_buffer to kmalloc_area
 // This function is called when write() is called in user space
 static ssize_t my_write(struct file *file, const char __user *user_buffer,
 						size_t size, loff_t *offset)
@@ -71,17 +71,17 @@ static ssize_t my_write(struct file *file, const char __user *user_buffer,
 		size = NPAGES * PAGE_SIZE;
 
 	/* TODO 2/3: copy from user buffer to mapped area */
-	memset(vmalloc_area, 0, NPAGES * PAGE_SIZE);
-	if (copy_from_user(vmalloc_area, user_buffer, size))
+	memset(kmalloc_area, 0, NPAGES * PAGE_SIZE);
+	if (copy_from_user(kmalloc_area, user_buffer, size))
 		return -EFAULT;
 
 	return size;
 }
 
-// Map vmalloc_area to user space
+// Map kmalloc_area to user space
 // This function is called when mmap() is called in user space
 // vm_area_struct is a structure that represents a memory mapping
-// vmalloc_to_pfn() returns the page frame number of a vmalloc'd area
+// kmalloc_to_pfn() returns the page frame number of a kmalloc'd area
 // remap_pfn_range() maps a page frame number to a user space address
 // Then when the user access the user space virtual address through mmap(),
 // the kernel will translate the virtual address to the physical address
@@ -90,23 +90,16 @@ static int my_mmap(struct file *filp, struct vm_area_struct *vma)
 	int ret;
 	long length = vma->vm_end - vma->vm_start; // length of mapping
 	unsigned long start = vma->vm_start;	   // start address of mapping
-	char *vmalloc_area_ptr = vmalloc_area;	   // pointer to vmalloc_area
+	char *kmalloc_area_ptr = kmalloc_area;	   // pointer to kmalloc_area
 	unsigned long pfn;
 
 	if (length > NPAGES * PAGE_SIZE) // check length
 		return -EIO;
 
-	/* TODO 1/9: map pages individually */
-	while (length > 0)
-	{
-		pfn = vmalloc_to_pfn(vmalloc_area_ptr);								  // get page frame number
-		ret = remap_pfn_range(vma, start, pfn, PAGE_SIZE, vma->vm_page_prot); // map page frame number to user space
-		if (ret < 0)
-			return ret;
-		start += PAGE_SIZE;
-		vmalloc_area_ptr += PAGE_SIZE;
-		length -= PAGE_SIZE;
-	}
+	pfn = page_to_pfn(virt_to_page(kmalloc_area_ptr));				   // get page frame number
+	ret = remap_pfn_range(vma, start, pfn, length, vma->vm_page_prot); // map page frame number to user space
+	if (ret < 0)
+		return ret;
 
 	return 0;
 }
@@ -183,7 +176,7 @@ static int __init my_init(void)
 	struct proc_dir_entry *entry;
 
 	// This is used to create a new file in /proc
-	entry = proc_create(PROC_VMALLOC_NAME, 0, NULL, &my_proc_ops);
+	entry = proc_create(PROC_KMALLOC_NAME, 0, NULL, &my_proc_ops);
 	if (!entry)
 	{
 		ret = -ENOMEM;
@@ -194,16 +187,16 @@ static int __init my_init(void)
 	// The major number is MY_MAJOR
 	// The minor number is 0
 	// The name of the device is "mymmap"
-	ret = register_chrdev_region(MKDEV(MY_MAJOR, 0), 1, "myvmap");
+	ret = register_chrdev_region(MKDEV(MY_MAJOR, 0), 1, "mykmap");
 	if (ret < 0)
 	{
 		pr_err("could not register region\n");
 		goto out_no_chrdev;
 	}
 
-	/* TODO 1/6: allocate NPAGES using vmalloc */
-	vmalloc_area = (char *)vmalloc(NPAGES * PAGE_SIZE);
-	if (vmalloc_area == NULL)
+	/* TODO 1/6: allocate NPAGES using kmalloc */
+	kmalloc_area = (char *)kmalloc(NPAGES * PAGE_SIZE, GFP_KERNEL);
+	if (kmalloc_area == NULL)
 	{
 		ret = -ENOMEM;
 		pr_err("could not allocate memory\n");
@@ -212,27 +205,27 @@ static int __init my_init(void)
 
 	/* TODO 1/2: mark pages as reserved */
 	for (i = 0; i < NPAGES * PAGE_SIZE; i += PAGE_SIZE)
-		SetPageReserved(vmalloc_to_page(vmalloc_area + i));
+		SetPageReserved(virt_to_page(kmalloc_area + i));
 
 	// So i want to check how much distance between each page
 	// Get the page frame number of each page
 	// Then calculate the distance between each page
 	for (i = 0; i < NPAGES * PAGE_SIZE; i += PAGE_SIZE)
 	{
-		unsigned long pfn = vmalloc_to_pfn(vmalloc_area + i);
+		unsigned long pfn = page_to_pfn(virt_to_page(kmalloc_area + i));
 		pr_info("%lu\n", pfn);
 	}
 
 	/* TODO 1/6: write data in each page */
 	for (i = 0; i < NPAGES * PAGE_SIZE; i += PAGE_SIZE)
 	{
-		// Write vmalloc in each page
-		sprintf(vmalloc_area + i, "vmalloc %d", i / PAGE_SIZE);
+		// Write kmalloc in each page
+		sprintf(kmalloc_area + i, "kmalloc %d", i / PAGE_SIZE);
 
 		// Last of the String is \0
 		// After the null i will fill it with 1
 		// So i can check if the data is written correctly
-		memset(vmalloc_area + i + strlen(vmalloc_area + i) + 1, '0', PAGE_SIZE - strlen(vmalloc_area + i) - 1);
+		memset(kmalloc_area + i + strlen(kmalloc_area + i) + 1, '0', PAGE_SIZE - strlen(kmalloc_area + i) - 1);
 	}
 
 	cdev_init(&mmap_cdev, &mmap_fops);
@@ -241,19 +234,19 @@ static int __init my_init(void)
 	if (ret < 0)
 	{
 		pr_err("could not add device\n");
-		goto out_vfree;
+		goto out_kfree;
 	}
 
-	pr_info("myvmap module loaded\n");
+	pr_info("mykmap module loaded\n");
 
 	return 0;
 
-out_vfree:
-	vfree(vmalloc_area);
+out_kfree:
+	kfree(kmalloc_area);
 out_unreg:
 	unregister_chrdev_region(MKDEV(MY_MAJOR, 0), 1);
 out_no_chrdev:
-	remove_proc_entry(PROC_VMALLOC_NAME, NULL);
+	remove_proc_entry(PROC_KMALLOC_NAME, NULL);
 out:
 	return ret;
 }
@@ -266,14 +259,14 @@ static void __exit my_exit(void)
 
 	/* TODO 1/3: clear reservation on pages and free mem.*/
 	for (i = 0; i < NPAGES * PAGE_SIZE; i += PAGE_SIZE)
-		ClearPageReserved(vmalloc_to_page(vmalloc_area + i));
-	vfree(vmalloc_area);
+		ClearPageReserved(virt_to_page(kmalloc_area + i));
+	kfree(kmalloc_area);
 
 	unregister_chrdev_region(MKDEV(MY_MAJOR, 0), 1);
 	/* TODO 3: remove proc entry */
-	remove_proc_entry(PROC_VMALLOC_NAME, NULL);
+	remove_proc_entry(PROC_KMALLOC_NAME, NULL);
 
-	pr_info("myvmap module unloaded\n");
+	pr_info("mykmap module unloaded\n");
 }
 
 module_init(my_init);
