@@ -45,39 +45,6 @@ static int my_release(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-// Read from vmalloc_area to user_buffer
-// This function is called when read() is called in user space
-static ssize_t my_read(struct file *file, char __user *user_buffer,
-					   size_t size, loff_t *offset)
-{
-	/* TODO 2/2: check size doesn't exceed our mapped area size */
-	if (size > NPAGES * PAGE_SIZE)
-		size = NPAGES * PAGE_SIZE;
-
-	/* TODO 2/2: copy from mapped area to user buffer */
-	if (copy_to_user(user_buffer, vmalloc_area, size))
-		return -EFAULT;
-
-	return size;
-}
-
-// Write from user_buffer to vmalloc_area
-// This function is called when write() is called in user space
-static ssize_t my_write(struct file *file, const char __user *user_buffer,
-						size_t size, loff_t *offset)
-{
-	/* TODO 2/2: check size doesn't exceed our mapped area size */
-	if (size > NPAGES * PAGE_SIZE)
-		size = NPAGES * PAGE_SIZE;
-
-	/* TODO 2/3: copy from user buffer to mapped area */
-	memset(vmalloc_area, 0, NPAGES * PAGE_SIZE);
-	if (copy_from_user(vmalloc_area, user_buffer, size))
-		return -EFAULT;
-
-	return size;
-}
-
 // Map vmalloc_area to user space
 // This function is called when mmap() is called in user space
 // vm_area_struct is a structure that represents a memory mapping
@@ -115,9 +82,7 @@ static const struct file_operations mmap_fops = {
 	.owner = THIS_MODULE,
 	.open = my_open,
 	.release = my_release,
-	.mmap = my_mmap,
-	.read = my_read,
-	.write = my_write};
+	.mmap = my_mmap	};
 
 // This function is called when cat /proc/mymap is called in user space
 // seq_file is a structure that represents a file in /proc

@@ -23,7 +23,7 @@
 
 #include "mmap_to_userspace.h"
 
-MODULE_DESCRIPTION("Non Contiguous Memory Mapping_kmalloc");
+MODULE_DESCRIPTION("Non Contiguous Memory Mapping_kmalloc for dst");
 MODULE_AUTHOR("Jongho Baik");
 MODULE_LICENSE("Dual BSD/GPL");
 
@@ -142,7 +142,7 @@ static int __init my_init(void)
 	struct proc_dir_entry *entry;
 
 	// This is used to create a new file in /proc
-	entry = proc_create(PROC_KMALLOC_NAME, 0, NULL, &my_proc_ops);
+	entry = proc_create(PROC_KMALLOC_DST_NAME, 0, NULL, &my_proc_ops);
 	if (!entry)
 	{
 		ret = -ENOMEM;
@@ -153,7 +153,7 @@ static int __init my_init(void)
 	// The major number is MY_MAJOR
 	// The minor number is 0
 	// The name of the device is "mymmap"
-	ret = register_chrdev_region(MKDEV(MY_MAJOR, 0), 1, "mykmap");
+	ret = register_chrdev_region(MKDEV(MY_MAJOR, 1), 1, "mykmap_dst");
 	if (ret < 0)
 	{
 		pr_err("could not register region\n");
@@ -186,7 +186,7 @@ static int __init my_init(void)
 	for (i = 0; i < NPAGES * PAGE_SIZE; i += PAGE_SIZE)
 	{
 		// Write kmalloc in each page
-		sprintf(kmalloc_area + i, "kmalloc %d", i / PAGE_SIZE);
+		sprintf(kmalloc_area + i, "kmalloc_dst %d", i / PAGE_SIZE);
 
 		// Last of the String is \0
 		// After the null i will fill it with 1
@@ -196,23 +196,23 @@ static int __init my_init(void)
 
 	cdev_init(&mmap_cdev, &mmap_fops);
 	mmap_cdev.owner = THIS_MODULE;
-	ret = cdev_add(&mmap_cdev, MKDEV(MY_MAJOR, 0), 1);
+	ret = cdev_add(&mmap_cdev, MKDEV(MY_MAJOR, 1), 1);
 	if (ret < 0)
 	{
 		pr_err("could not add device\n");
 		goto out_kfree;
 	}
 
-	pr_info("mykmap module loaded\n");
+	pr_info("mykmap_dst module loaded\n");
 
 	return 0;
 
 out_kfree:
 	kfree(kmalloc_area);
 out_unreg:
-	unregister_chrdev_region(MKDEV(MY_MAJOR, 0), 1);
+	unregister_chrdev_region(MKDEV(MY_MAJOR, 1), 1);
 out_no_chrdev:
-	remove_proc_entry(PROC_KMALLOC_NAME, NULL);
+	remove_proc_entry(PROC_KMALLOC_DST_NAME, NULL);
 out:
 	return ret;
 }
@@ -228,11 +228,11 @@ static void __exit my_exit(void)
 		ClearPageReserved(virt_to_page(kmalloc_area + i));
 	kfree(kmalloc_area);
 
-	unregister_chrdev_region(MKDEV(MY_MAJOR, 0), 1);
+	unregister_chrdev_region(MKDEV(MY_MAJOR, 1), 1);
 	/* TODO 3: remove proc entry */
-	remove_proc_entry(PROC_KMALLOC_NAME, NULL);
+	remove_proc_entry(PROC_KMALLOC_DST_NAME, NULL);
 
-	pr_info("mykmap module unloaded\n");
+	pr_info("mykmap_dst module unloaded\n");
 }
 
 module_init(my_init);

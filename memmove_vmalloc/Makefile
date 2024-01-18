@@ -1,6 +1,6 @@
 # Build Kernel Module vmalloc_to_userspace.c and user program memmove_vmalloc.c
 
-obj-m += vmalloc_to_userspace.o kmalloc_to_userspace.o vmalloc_to_userspace_dst.o
+obj-m += vmalloc_to_userspace.o kmalloc_to_userspace.o vmalloc_to_userspace_dst.o kmalloc_to_userspace_dst.o 
 DEBUG_CFLAGS += -g
 ccflags-y += ${DBUG_CFLAGS}
 CC += ${DEBUG_CFLAGS}

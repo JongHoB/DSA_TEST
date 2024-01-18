@@ -23,7 +23,7 @@ int main(int argc, const char **argv)
 	int rc;
 
 	system("mknod " MMAP_VDEV " c 42 0");
-	system("mknod " MMAP_VDST_DEV " c 42 1");
+	system("mknod " MMAP_KDST_DEV " c 43 1");
 
 	fd = open(MMAP_VDEV, O_RDWR | O_SYNC);
 	if (fd < 0)
@@ -33,11 +33,11 @@ int main(int argc, const char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	fd2 = open(MMAP_VDST_DEV, O_RDWR | O_SYNC);
+	fd2 = open(MMAP_KDST_DEV, O_RDWR | O_SYNC);
 	if (fd2 < 0)
 	{
 		perror("open");
-		system("rm " MMAP_VDST_DEV);
+		system("rm " MMAP_KDST_DEV);
 		system("rm " MMAP_VDEV);
 		exit(EXIT_FAILURE);
 	}
@@ -54,17 +54,15 @@ int main(int argc, const char **argv)
 	if (dst == MAP_FAILED)
 	{
 		perror("mmap");
-		system("rm " MMAP_VDST_DEV);
+		system("rm " MMAP_KDST_DEV);
 		system("rm " MMAP_VDEV);
 		exit(EXIT_FAILURE);
 	}
 
 	for (i = 0; i < NPAGES * getpagesize(); i += getpagesize())
-	{
-		printf("virtual address src : %p\n",malloc+i);
+	{	
 		printf("%s\n", malloc + i);
-		printf("%s\n", dst + i);
-		printf("virtual address dst : %p\n",dst+i);
+		printf("%s\n", dst + i);	
 	}
 
 	/////////////////////////
@@ -89,7 +87,7 @@ int main(int argc, const char **argv)
 	munmap(dst, len);
 
 	system("rm " MMAP_VDEV);
-	system("rm " MMAP_VDST_DEV);
+	system("rm " MMAP_KDST_DEV);
 
 	printf("size dst: %d\n", len);
 
