@@ -16,20 +16,28 @@ int main(int argc, const char **argv)
 {
 	struct timespec start, end;
 	double s, e;
-	int fd, test;
-	char *malloc;
+	int fd, test, fd2;
+	char *malloc, *dst;
 	int len = NPAGES * getpagesize();
 	int i;
 	int rc;
 
-	char dst1[len];
-
 	system("mknod " MMAP_VDEV " c 42 0");
+	system("mknod " MMAP_VDST_DEV " c 42 1");
 
 	fd = open(MMAP_VDEV, O_RDWR | O_SYNC);
 	if (fd < 0)
 	{
 		perror("open");
+		system("rm " MMAP_VDEV);
+		exit(EXIT_FAILURE);
+	}
+
+	fd2 = open(MMAP_VDST_DEV, O_RDWR | O_SYNC);
+	if (fd2 < 0)
+	{
+		perror("open");
+		system("rm " MMAP_VDST_DEV);
 		system("rm " MMAP_VDEV);
 		exit(EXIT_FAILURE);
 	}
@@ -42,18 +50,27 @@ int main(int argc, const char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	dst = (char *)mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd2, 0);
+	if (dst == MAP_FAILED)
+	{
+		perror("mmap");
+		system("rm " MMAP_VDST_DEV);
+		system("rm " MMAP_VDEV);
+		exit(EXIT_FAILURE);
+	}
+
 	for (i = 0; i < NPAGES * getpagesize(); i += getpagesize())
 	{
-		// In each page, sprintf(vmalloc_area + i, "Hello World %d", i / PAGE_SIZE); is executed.
-		// So, in each page, "Hello World %d" is written.
-		// print the content of each page
+		printf("virtual address src : %p\n",malloc+i);
 		printf("%s\n", malloc + i);
+		printf("%s\n", dst + i);
+		printf("virtual address dst : %p\n",dst+i);
 	}
 
 	/////////////////////////
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	///////
-	memmove(dst1, malloc, len);
+	memmove(dst, malloc, len);
 	///////
 	clock_gettime(CLOCK_MONOTONIC, &end);
 	////////////////////////
@@ -62,12 +79,17 @@ int main(int argc, const char **argv)
 
 	printf("vmalloc memmove time in soft: %ld\n", end.tv_nsec - start.tv_nsec);
 
-	rc = memcmp(malloc, dst1, len);
+	rc = memcmp(malloc, dst, len);
 	rc ? printf("v memmove failed\n") : printf("v memmove successful\n");
 
 	close(fd);
+	close(fd2);
+
+	munmap(malloc, len);
+	munmap(dst, len);
 
 	system("rm " MMAP_VDEV);
+	system("rm " MMAP_VDST_DEV);
 
 	printf("size dst: %d\n", len);
 

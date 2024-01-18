@@ -104,19 +104,27 @@ int main(int argc, const char **argv)
 {
 	struct timespec start, end;
 	double s, e;
-	int fd, test;
-	char *addr;
+	int fd, test, fd2;
+	char *addr, *dst;
 	int len = NPAGES * getpagesize();
 	int i;
 
-	char dst2[len];
-
 	system("mknod " MMAP_VDEV " c 42 0");
+	system("mknod " MMAP_VDST_DEV " c 42 1");
 
 	fd = open(MMAP_VDEV, O_RDWR | O_SYNC);
 	if (fd < 0)
 	{
 		perror("open");
+		system("rm " MMAP_VDEV);
+		exit(EXIT_FAILURE);
+	}
+
+	fd2 = open(MMAP_VDST_DEV, O_RDWR | O_SYNC);
+	if (fd2 < 0)
+	{
+		perror("open");
+		system("rm " MMAP_VDST_DEV);
 		system("rm " MMAP_VDEV);
 		exit(EXIT_FAILURE);
 	}
@@ -129,12 +137,19 @@ int main(int argc, const char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	dst = (char *)mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_SHARED, fd2, 0);
+	if (dst == MAP_FAILED)
+	{
+		perror("mmap");
+		system("rm " MMAP_VDST_DEV);
+		system("rm " MMAP_VDEV);
+		exit(EXIT_FAILURE);
+	}
+
 	for (i = 0; i < NPAGES * getpagesize(); i += getpagesize())
 	{
-		// In each page, sprintf(vmalloc_area + i, "Hello World %d", i / PAGE_SIZE); is executed.
-		// So, in each page, "Hello World %d" is written.
-		// print the content of each page
 		printf("%s\n", addr + i);
+		printf("%s\n", dst + i);
 	}
 
 	void *wq_portal;
@@ -158,7 +173,7 @@ int main(int argc, const char **argv)
 	desc.flags |= IDXD_OP_FLAG_CC;
 	desc.xfer_size = len;
 	desc.src_addr = (uintptr_t)addr;
-	desc.dst_addr = (uintptr_t)dst2;
+	desc.dst_addr = (uintptr_t)dst;
 	desc.completion_addr = (uintptr_t)&comp;
 retry1:
 	comp.status = 0;
@@ -220,7 +235,7 @@ retry1:
 	else
 	{
 		printf("desc successful\n");
-		rc = memcmp(addr, dst2, len);
+		rc = memcmp(addr, dst, len);
 		rc ? printf("v memmove failed\n") : printf("v memmove successful\n");
 		rc = rc ? EXIT_FAILURE : EXIT_SUCCESS;
 	}
@@ -235,8 +250,13 @@ done1:
 	printf("size dst: %d\n", len);
 
 	close(fd);
+	close(fd2);
+
+	munmap(addr, len);
+	munmap(dst, len);
 
 	system("rm " MMAP_VDEV);
+	system("rm " MMAP_VDST_DEV);
 
 	return 0;
 }
