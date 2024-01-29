@@ -6,28 +6,64 @@
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include "memmove.h"
 
-#define BLEN 4096 << 8
+#include <time.h>
 
 int main()
 {
-	struct timeval start, end;
+	struct timespec start, end;
 	double s, e;
+	int BLEN = NPAGES * getpagesize();
 	char src[BLEN];
 	char dst[BLEN];
 
-	memset(src, 0xaa, BLEN);
+	for (int i = 0; i < BLEN; i += getpagesize())
+	{
+		switch (i % 10)
+		{
+		case 0:
+			src[i] = 'a';
+			break;
+		case 1:
+			src[i] = 'b';
+			break;
+		case 2:
+			src[i] = 'c';
+			break;
+		case 3:
+			src[i] = 'd';
+			break;
+		case 4:
+			src[i] = 'e';
+			break;
+		case 5:
+			src[i] = 'f';
+			break;
+		case 6:
+			src[i] = 'g';
+			break;
+		case 7:
+			src[i] = 'h';
+			break;
+		case 8:
+			src[i] = 'i';
+			break;
+		case 9:
+			src[i] = 'j';
+			break;
+		}
+	}
 	/////////////////////////
-	gettimeofday(&start, NULL);
+	clock_gettime(CLOCK_MONOTONIC, &start);
 	///////
 	memmove(dst, src, BLEN);
 	///////
-	gettimeofday(&end, NULL);
+	clock_gettime(CLOCK_MONOTONIC, &end);
 	////////////////////////
-	s = (start.tv_sec) * 1000 + (start.tv_usec) / 1000;
-	e = (end.tv_sec) * 1000 + (end.tv_usec) / 1000;
 
-	printf("memmove time in soft: %ld\n", end.tv_usec - start.tv_usec);
+	printf("memmove time in soft: %ld\n", end.tv_nsec - start.tv_nsec);
 	printf("size dst: %d\n", sizeof(dst) / sizeof(char));
 
 	int rc = memcmp(src, dst, BLEN);

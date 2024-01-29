@@ -8,10 +8,11 @@
 #include <sys/types.h>
 #include <linux/idxd.h>
 #include <accel-config/libaccel_config.h>
-
+#include <time.h>
 #include <x86intrin.h>
 
-#define BLEN 4096 << 8
+#include "memmove.h"
+
 #define WQ_PORTAL_SIZE 4096
 
 #define ENQ_RETRY_MAX 1000
@@ -48,7 +49,7 @@ static __always_inline inline int umwait(unsigned long timeout, unsigned int sta
 				 : "c"(state), "a"(timeout_low), "d"(timeout_high));
 	return r;
 }
-static void *map_wq(void)
+static void *map_wq(int BLEN)
 {
 	void *wq_portal;
 	struct accfg_ctx *ctx;
@@ -94,23 +95,63 @@ static void *map_wq(void)
 	return wq_portal;
 }
 
-int main(int argc, char *argv[])
+int main()
 {
 
-	struct timeval start, end;
+	struct timespec start, end;
 	double s, e;
 
 	void *wq_portal;
 	struct dsa_hw_desc desc = {};
+
+	int BLEN = NPAGES * getpagesize();
+
 	char src[BLEN];
 	char dst[BLEN];
 	struct dsa_completion_record comp __attribute__((aligned(32)));
 	int rc;
 	int poll_retry, enq_retry;
-	wq_portal = map_wq();
+	wq_portal = map_wq(BLEN);
 	if (wq_portal == MAP_FAILED)
 		return EXIT_FAILURE;
-	memset(src, 0xaa, BLEN);
+
+	for (int i = 0; i < BLEN; i += getpagesize())
+	{
+		switch (i % 10)
+		{
+		case 0:
+			src[i] = 'a';
+			break;
+		case 1:
+			src[i] = 'b';
+			break;
+		case 2:
+			src[i] = 'c';
+			break;
+		case 3:
+			src[i] = 'd';
+			break;
+		case 4:
+			src[i] = 'e';
+			break;
+		case 5:
+			src[i] = 'f';
+			break;
+		case 6:
+			src[i] = 'g';
+			break;
+		case 7:
+			src[i] = 'h';
+			break;
+		case 8:
+			src[i] = 'i';
+			break;
+		case 9:
+			src[i] = 'j';
+			break;
+		}
+	}
+
 	desc.opcode = DSA_OPCODE_MEMMOVE;
 	/*
 	 ** Request a completion – since we poll on status, this flag
@@ -132,7 +173,7 @@ retry:
 	_mm_sfence();
 	enq_retry = 0;
 	//////////////////////////////////////////////////////////////
-	gettimeofday(&start, NULL);
+	clock_gettime(CLOCK_MONOTONIC, &start);
 	/////
 
 	while (enqcmd(wq_portal, &desc) && enq_retry++ < ENQ_RETRY_MAX)
@@ -156,7 +197,7 @@ retry:
 		}
 	}
 	/////
-	gettimeofday(&end, NULL);
+	clock_gettime(CLOCK_MONOTONIC, &end);
 	/////////////////////////////////////////////////////////////
 	if (poll_retry == POLL_RETRY_MAX)
 	{
@@ -194,10 +235,8 @@ done:
 	munmap(wq_portal, WQ_PORTAL_SIZE);
 
 	///////////////////////////////////////////
-	printf("%ld %ld\n", start.tv_sec, start.tv_usec);
-	printf("%ld %ld\n", end.tv_sec, end.tv_usec);
 
-	printf("memmove time in dsa: %ld\n", end.tv_usec - start.tv_usec);
+	printf("memmove time in dsa: %ld\n", end.tv_nsec - start.tv_nsec);
 	printf("size dst: %d\n", sizeof(dst) / sizeof(char));
 	//////////////////////////////////////////
 	return rc;
