@@ -20,6 +20,10 @@
 #include <linux/idxd.h>
 #include <linux/dmaengine.h>
 #include <linux/dma-mapping.h>
+#include <linux/device.h>
+#include <linux/device/bus.h>
+#include "idxd/idxd.h"
+#include "idxd/registers.h"
 
 MODULE_DESCRIPTION("DSA in KERNEL");
 MODULE_AUTHOR("Jongho Baik");
@@ -177,7 +181,10 @@ static struct dma_chan *chan = NULL;
 
 static int init_dsa(void)
 {
-    struct idxd_device *device = NULL;
+
+    struct idxd_dev *idxd_dev;
+    struct idxd_wq *wq;
+    struct idxd_device *idxd_device;
     // dmaengine subsystem
     // ls /sys/class/dma/
     // we can see dma0chan0
@@ -210,6 +217,37 @@ static int init_dsa(void)
 
     // print the dma device name
     pr_info("%s\n", dma_chan_name(chan));
+
+    idxd_dev = confdev_to_idxd_dev(&((chan->dev)->device));
+    if (is_idxd_dev(idxd_dev))
+    {
+        pr_info("is_idxd_dev\n");
+    }
+    else if (is_idxd_wq_dev(idxd_dev))
+    {
+        pr_info("is_idxd_wq_dev\n");
+    }
+    else
+    {
+        pr_info("is not idxd_dev or idxd_wq_dev\n");
+        dma_release_channel(chan);
+        return -1;
+    }
+    pr_info("idxd type: %d\n", idxd_dev->type);
+    idxd_device = idxd_dev_to_idxd(idxd_dev);
+    if (idxd_device)
+    {
+        pr_info("idxd_device\n");
+    }
+    else
+    {
+        pr_info("not idxd_device\n");
+        dma_release_channel(chan);
+        return -1;
+    }
+    pr_info("idxd device state: %d\n", idxd_device->state);
+    pr_info("idxd device id: %d\n", idxd_device->id);
+    pr_info("idxd major: %d\n", idxd_device->major);
 
     return 0;
 }
