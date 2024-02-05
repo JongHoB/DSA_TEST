@@ -1,5 +1,5 @@
 
-#define NPAGES 512
+#define NPAGES 1
 
 #ifndef __SO2MMAP_H__
 #define __SO2MMAP_H__ 1
@@ -14,7 +14,7 @@
 	((unsigned long)(kaddr) >> PAGE_SHIFT)
 #endif
 
-#define WQ_PORTAL_SIZE 4096
+// #define WQ_PORTAL_SIZE 4096
 
 #define ENQ_RETRY_MAX 1000
 #define POLL_RETRY_MAX 10000
