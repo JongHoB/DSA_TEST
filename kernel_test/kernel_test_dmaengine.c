@@ -1,5 +1,5 @@
 // This code is modified by Jongho Baik and the original code is from Linux Kernel Lab.
-
+#include "/usr/src/linux-6.8-rc2/drivers/dma/idxd/idxd.h"
 #include <linux/version.h>
 #include <linux/init.h>
 #include <linux/module.h>
@@ -16,23 +16,25 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 
-#include "kernel_test.h"
 #include <linux/idxd.h>
 #include <linux/dmaengine.h>
 #include <linux/dma-mapping.h>
 #include <linux/delay.h>
 #include <linux/timer.h>
-#include "idxd/idxd.h"
+#include <linux/iommu.h>
 
 #include <linux/pci.h>
+
+#include "kernel_test.h"
 
 MODULE_DESCRIPTION("DSA in KERNEL");
 MODULE_AUTHOR("Jongho Baik");
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_IMPORT_NS(IDXD);
 
-// static struct dma_chan *chan = NULL;
+static struct dma_chan *chan = NULL;
 static struct idxd_wq *wq;
+struct idxd_device *idxd_device;
 // static struct idxd_device *idxd_device;
 // static struct idxd_dma_chan *idxd_chan;
 
@@ -234,7 +236,8 @@ static int init_dsa(void)
     struct device *dev = NULL;
     struct pci_device_id pci_device_id = {PCI_DEVICE_DATA(INTEL, DSA_SPR0, NULL)};
     int device_count = 0;
-    int rc;
+    unsigned int pasid;
+    struct iommu_sva *sva;
 
     while ((pci_dev = pci_get_device(pci_device_id.vendor, pci_device_id.device, pci_dev)) != NULL)
     {
@@ -255,7 +258,7 @@ static int init_dsa(void)
 
     dev = &pci_dev_list[1]->dev;
 
-    struct idxd_device *idxd_device = pci_get_drvdata(pci_dev_list[1]);
+    idxd_device = pci_get_drvdata(pci_dev_list[1]);
 
     if (!idxd_device)
     {
@@ -291,7 +294,8 @@ static int init_dsa(void)
         pr_info("wq is not dmaengine\n");
         return 0;
     }
-    idxd_wq_get(wq);
+    // idxd_wq_get(wq);
+    chan = dma_get_slave_channel(&wq->idxd_chan->chan);
     pr_info("client count: %d\n", wq->client_count);
 
     pr_info("wq num_descs: %d\n", wq->num_descs);
@@ -300,76 +304,35 @@ static int init_dsa(void)
     pr_info("dma info\n");
     pr_info("dma device name: %s\n", dma_chan_name(&wq->idxd_chan->chan));
 
-    // // dmaengine subsystem
-    // // ls /sys/class/dma/
-    // // we can see dma1chan0
-    // // dma1chan0 is dsa that we configured
-    // // we need to use that dsa
+    // wq->flags = 0;
+    pr_info("wq flags: 0x%x\n", wq->flags);
+    // set_bit(WQ_FLAG_DEDICATED, &wq->flags);
 
-    // // Fisst, we need to get the dma device
-    // // We can get the dma device by using dma_request_channel
-    // // dma_request_channel is a function that returns dma_chan
-    // // dma_chan is a structure that represents a dma channel
+    // pr_info("before wq flags: 0x%x\n", wq->flags);
+    clear_bit(WQ_FLAG_ATS_DISABLE, &wq->flags);
+    clear_bit(WQ_FLAG_PRS_DISABLE, &wq->flags);
+    // clear_bit(WQ_FLAG_BLOCK_ON_FAULT, &wq->flags);
+    pr_info("after wq flags: 0x%x\n", wq->flags);
 
-    // printk(KERN_INFO "init_dsa\n");
-    // dmaengine_get();
-    // dma_issue_pending_all();
-
-    // printk(KERN_INFO "dma_cap_set\n");
-
-    // dma_cap_mask_t mask;
-
-    // dma_cap_zero(mask);
-    // dma_cap_set(DMA_MEMCPY, mask);
-
-    // chan = dma_request_chan_by_mask(&mask);
-    // if (IS_ERR_OR_NULL(chan))
+    // sva = iommu_sva_bind_device(dev, current->mm);
+    // if (IS_ERR(sva))
     // {
-    //     dmaengine_put();
-    //     pr_err("could not get dma channel\n");
-    //     return -1;
-    // }
-
-    // // print the dma device name
-    // pr_info("%s\n", dma_chan_name(chan));
-
-    // idxd_chan = container_of(chan, struct idxd_dma_chan, chan);
-    // wq = idxd_chan->wq;
-
-    // if (wq)
-    // {
-    //     pr_info("wq\n");
-    //     pr_info("wq id: %d\n", wq->id);
-    //     pr_info("wq state: %d\n", wq->state);
-    //     pr_info("wq type: %d\n", wq->type);
-    //     pr_info("wq name: %s\n", wq->name);
-    //     pr_info("wq threshold: %d\n", wq->threshold);
-
-    //     if (wq_shared(wq))
-    //     {
-    //         pr_info("wq shared\n");
-    //     }
-    //     else
-    //     {
-    //         pr_info("wq not shared\n");
-    //     }
+    //     pr_info("iommu_sva_bind_device failed\n");
     // }
     // else
     // {
-    //     pr_info("not wq\n");
+    //     pr_info("iommu_sva_bind_device success\n");
     // }
-    // idxd_device = wq->idxd;
-    // if (idxd_device)
+    // pasid = iommu_sva_get_pasid(sva);
+
+    // pr_info("pasid: %d\n", pasid);
+    // if (idxd_wq_set_pasid(wq, pasid) < 0)
     // {
-    //     pr_info("idxd_device\n");
-    //     pr_info("idxd device state: %d\n", idxd_device->state);
-    //     pr_info("idxd device id: %d\n", idxd_device->id);
-    //     pr_info("idxd major: %d\n", idxd_device->major);
-    //     pr_info("cmd_status: 0x%x\n", idxd_device->cmd_status);
+    //     pr_info("idxd_wq_set_pasid failed\n");
     // }
     // else
     // {
-    //     pr_info("not idxd_device\n");
+    //     pr_info("idxd_wq_set_pasid success\n");
     // }
 
     return 0;
@@ -473,29 +436,45 @@ out_kfree:
 
 static void dsa_copy(void)
 {
-    struct idxd_desc *desc = wq->descs[0];
+    // struct idxd_desc *desc = wq->descs[0];
+    struct idxd_desc *desc = NULL;
     struct dsa_hw_desc *hw = NULL;
-    static char arr[NPAGES * PAGE_SIZE] = "temp";
-    static char arr2[NPAGES * PAGE_SIZE];
+    struct dma_device *device = &idxd_device->idxd_dma->dma;
     int cmp = 0;
     int poll = 0;
+    int rc = 0;
 
     if (IS_ERR(desc))
     {
         pr_info("error\n");
     }
+
+    dma_addr_t src = dma_map_single(device->dev, kmalloc_area, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+    if (dma_mapping_error(chan->device->dev, src))
+    {
+        pr_info("dma_map_single error\n");
+    }
+    dma_addr_t dst = dma_map_single(device->dev, kmalloc_area2, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+    if (dma_mapping_error(chan->device->dev, dst))
+    {
+        pr_info("dma_map_single error\n");
+    }
+
+    struct dma_async_tx_descriptor *dma_desc = device->device_prep_dma_memcpy(chan, dst, src, NPAGES * PAGE_SIZE, IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC);
+    if (!dma_desc)
+    {
+        pr_info("device_prep_dma_memcpy error\n");
+    }
+    desc = container_of(dma_desc, struct idxd_desc, txd);
+
     hw = desc->hw;
-    hw->opcode = DSA_OPCODE_MEMMOVE;
-    hw->flags = IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC;
-    hw->priv = 0;
-    hw->completion_addr = desc->compl_dma;
-    hw->src_addr = (uintptr_t)arr;
-    hw->dst_addr = (uintptr_t)arr2;
-    hw->xfer_size = NPAGES * PAGE_SIZE;
 
-    desc->txd.flags = IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC;
+    pr_info("opcode: 0x%x\n", hw->opcode);
+    pr_info("flags: 0x%x\n", hw->flags);
+    pr_info("completion_addr: 0x%llx\n", hw->completion_addr);
 
-    desc->completion->status = 0;
+    pr_info("desc address: 0x%llx\n", desc->compl_dma);
+    pr_info("hw priv: %d\n", hw->priv);
 
     pr_info("init status: 0x%x\n", desc->completion->status);
 
@@ -504,26 +483,35 @@ static void dsa_copy(void)
     desc->txd.cookie = desc->txd.tx_submit(&desc->txd);
     pr_info("cookie: %d\n", desc->txd.cookie);
 
-    while (!desc->completion->status && poll < POLL_RETRY_MAX)
+    while (!desc->completion->status && poll++ < POLL_RETRY_MAX)
     {
         cpu_relax();
     }
+
     pr_info("after status: 0x%x\n", desc->completion->status);
 
-    cmp = memcmp(arr, arr2, NPAGES * PAGE_SIZE);
+    cmp = memcmp(kmalloc_area, kmalloc_area2, NPAGES * PAGE_SIZE);
     if (cmp == 0)
     {
         pr_info("copy success\n");
+        pr_info("kmalloc_area: %s\n", kmalloc_area);
+        pr_info("kmalloc_area2: %s\n", kmalloc_area2);
     }
     else
     {
         pr_info("copy fail\n");
-        pr_info("kmalloc_area: %s\n", arr);
-        pr_info("kmalloc_area2: %s\n", arr2);
+        pr_info("kmalloc_area: %s\n", kmalloc_area);
+        pr_info("kmalloc_area2: %s\n", kmalloc_area2);
     }
     pr_info("fault info: 0x%x\n", desc->completion->fault_info);
     pr_info("result: 0x%x\n", desc->completion->result);
     pr_info("invalid flag uint32: 0x%x\n", desc->completion->invalid_flags);
+
+    idxd_desc_complete(desc, IDXD_COMPLETE_NORMAL, 0);
+
+    dma_unmap_single(device->dev, src, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+    dma_unmap_single(device->dev, dst, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+
     return;
 }
 
@@ -569,8 +557,8 @@ static void exit_cdev(void)
 static void __exit my_exit(void)
 {
     exit_cdev();
-    // dma_release_channel(chan);
-    idxd_wq_put(wq);
+    dma_release_channel(chan);
+    // idxd_wq_put(wq);
 }
 
 module_init(my_init);
