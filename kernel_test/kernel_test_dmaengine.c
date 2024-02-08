@@ -24,6 +24,8 @@
 #include <linux/iommu.h>
 
 #include <linux/pci.h>
+#include <linux/time64.h>
+#include <linux/timekeeping.h>
 
 #include "kernel_test.h"
 
@@ -195,7 +197,6 @@ static int init_cdev(void)
         // pr_info("area 4: %lu\n", pfn);
     }
 
-    /* TODO 1/6: write data in each page */
     for (i = 0; i < NPAGES * PAGE_SIZE; i += PAGE_SIZE)
     {
         // Write kmalloc in each page
@@ -228,11 +229,11 @@ out_kfree:
 
 static void dsa_copy(void)
 {
-    // struct idxd_desc *desc = wq->descs[0];
     struct idxd_desc *desc = NULL;
     struct dsa_hw_desc *hw = NULL;
     struct dma_device *device = &idxd_device->idxd_dma->dma;
     dma_addr_t src1, src2, dst1, dst2;
+    struct timespec64 start, end, start2, end2;
     int cmp = 0;
     int poll = 0;
     int rc = 0;
@@ -269,12 +270,14 @@ static void dsa_copy(void)
 retry:
     pr_info("xfer_size: %d\n", desc->hw->xfer_size);
 
+    ktime_get_ts64(&start);
     desc->txd.cookie = desc->txd.tx_submit(&desc->txd);
 
     while (!desc->completion->status && poll++ < POLL_RETRY_MAX)
     {
         cpu_relax();
     }
+    ktime_get_ts64(&end);
 
     if (poll >= POLL_RETRY_MAX || fault >= POLL_RETRY_MAX)
     {
@@ -313,10 +316,19 @@ done:
     pr_info("result: 0x%x\n", desc->completion->result);
     pr_info("invalid flag uint32: 0x%x\n", desc->completion->invalid_flags);
 
+    pr_info("dsa time: %lld\n", end.tv_nsec - start.tv_nsec);
+
     idxd_desc_complete(desc, IDXD_COMPLETE_NORMAL, 0);
 
     dma_unmap_single(device->dev, src1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
     dma_unmap_single(device->dev, dst1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+
+    ktime_get_ts64(&start2);
+    memmove(kmalloc_area4, kmalloc_area3, NPAGES * PAGE_SIZE);
+    ktime_get_ts64(&end2);
+    cmp = memcmp(kmalloc_area3, kmalloc_area4, NPAGES * PAGE_SIZE);
+    cmp ? pr_info("copy fail\n") : pr_info("copy success\n");
+    pr_info("memmove time: %lld\n", end2.tv_nsec - start2.tv_nsec);
 
     return;
 }

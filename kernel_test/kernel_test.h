@@ -14,8 +14,6 @@
 	((unsigned long)(kaddr) >> PAGE_SHIFT)
 #endif
 
-// #define WQ_PORTAL_SIZE 4096
-
 #define ENQ_RETRY_MAX 1000
 #define POLL_RETRY_MAX 10000
 
@@ -191,13 +189,11 @@ int idxd_wq_set_pasid(struct idxd_wq *wq, int pasid)
 	int rc;
 
 	rc = idxd_wq_disable(wq, false);
-	pr_info("idxd_wq_disable: %d\n", rc);
+
 	if (rc < 0)
 		return rc;
 
 	__idxd_wq_set_pasid_locked(wq, pasid);
-
-	pr_info("idxd_wq_set\n");
 
 	rc = idxd_wq_enable(wq);
 	if (rc < 0)
