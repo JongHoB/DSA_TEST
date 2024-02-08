@@ -57,7 +57,10 @@ static int init_dsa(void)
     {
         pci_dev_list[device_count] = pci_dev;
         device_count++;
-        struct device *dev = &pci_dev->dev;
+        struct idxd_device *idxd_device = pci_get_drvdata(pci_dev);
+        pr_info("device: %d\n", device_count);
+        pr_info("wq ats support:%d\n", idxd_device->hw.wq_cap.wq_ats_support);
+        pr_info("wq prs support:%d\n", idxd_device->hw.wq_cap.wq_prs_support);
         if (device_count >= 8)
             break;
     }
@@ -68,9 +71,9 @@ static int init_dsa(void)
         return -1;
     }
 
-    dev = &pci_dev_list[1]->dev;
+    dev = &pci_dev_list[2]->dev;
 
-    idxd_device = pci_get_drvdata(pci_dev_list[1]);
+    idxd_device = pci_get_drvdata(pci_dev_list[2]);
 
     if (!idxd_device)
     {
@@ -107,30 +110,30 @@ static int init_dsa(void)
     pr_info("dma device name: %s\n", dma_chan_name(&wq->idxd_chan->chan));
 
     pr_info("wq flags: 0x%x\n", wq->flags);
-    clear_bit(WQ_FLAG_ATS_DISABLE, &wq->flags);
-    clear_bit(WQ_FLAG_PRS_DISABLE, &wq->flags);
-    pr_info("after wq flags: 0x%x\n", wq->flags);
+    // clear_bit(WQ_FLAG_ATS_DISABLE, &wq->flags);
+    // clear_bit(WQ_FLAG_PRS_DISABLE, &wq->flags);
+    // pr_info("after wq flags: 0x%x\n", wq->flags);
 
-    sva = iommu_sva_bind_device(dev, current->mm);
-    if (IS_ERR(sva))
-    {
-        pr_info("iommu_sva_bind_device failed\n");
-    }
-    else
-    {
-        pr_info("iommu_sva_bind_device success\n");
-    }
-    pasid = iommu_sva_get_pasid(sva);
+    // sva = iommu_sva_bind_device(dev, current->mm);
+    // if (IS_ERR(sva))
+    // {
+    //     pr_info("iommu_sva_bind_device failed\n");
+    // }
+    // else
+    // {
+    //     pr_info("iommu_sva_bind_device success\n");
+    // }
+    // pasid = iommu_sva_get_pasid(sva);
 
-    pr_info("pasid: %d\n", pasid);
-    if (idxd_wq_set_pasid(wq, pasid) < 0)
-    {
-        pr_info("idxd_wq_set_pasid failed\n");
-    }
-    else
-    {
-        pr_info("idxd_wq_set_pasid success\n");
-    }
+    // pr_info("pasid: %d\n", pasid);
+    // if (idxd_wq_set_pasid(wq, pasid) < 0)
+    // {
+    //     pr_info("idxd_wq_set_pasid failed\n");
+    // }
+    // else
+    // {
+    //     pr_info("idxd_wq_set_pasid success\n");
+    // }
 
     return 0;
 }
@@ -233,27 +236,23 @@ static void dsa_copy(void)
     int cmp = 0;
     int poll = 0;
     int rc = 0;
+    int fault = 0;
 
-    if (IS_ERR(desc))
+    src1 = dma_map_single(device->dev, kmalloc_area, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+    if (dma_mapping_error(chan->device->dev, src1))
     {
-        pr_info("error\n");
+        pr_info("dma_map_single error\n");
+    }
+    dst1 = dma_map_single(device->dev, kmalloc_area2, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+    if (dma_mapping_error(chan->device->dev, dst1))
+    {
+        pr_info("dma_map_single error\n");
     }
 
-    // src1 = dma_map_single(device->dev, kmalloc_area, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
-    // if (dma_mapping_error(chan->device->dev, src))
-    // {
-    //     pr_info("dma_map_single error\n");
-    // }
-    // dst1 = dma_map_single(device->dev, kmalloc_area2, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
-    // if (dma_mapping_error(chan->device->dev, dst))
-    // {
-    //     pr_info("dma_map_single error\n");
-    // }
+    // src1 = (dma_addr_t)kmalloc_area;
+    // dst1 = (dma_addr_t)kmalloc_area2;
 
-    src1 = (dma_addr_t)kmalloc_area;
-    dst1 = (dma_addr_t)kmalloc_area2;
-
-    struct dma_async_tx_descriptor *dma_desc = device->device_prep_dma_memcpy(chan, dst1, src1, NPAGES * PAGE_SIZE, IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC);
+    struct dma_async_tx_descriptor *dma_desc = device->device_prep_dma_memcpy(chan, dst1, src1, NPAGES * PAGE_SIZE, IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
     if (!dma_desc)
     {
         pr_info("device_prep_dma_memcpy error\n");
@@ -264,12 +263,10 @@ static void dsa_copy(void)
 
     pr_info("opcode: 0x%x\n", hw->opcode);
     pr_info("flags: 0x%x\n", hw->flags);
-    pr_info("completion_addr: 0x%llx\n", hw->completion_addr);
-
-    pr_info("desc address: 0x%llx\n", desc->compl_dma);
 
     pr_info("init status: 0x%x\n", desc->completion->status);
 
+retry:
     pr_info("xfer_size: %d\n", desc->hw->xfer_size);
 
     desc->txd.cookie = desc->txd.tx_submit(&desc->txd);
@@ -279,25 +276,47 @@ static void dsa_copy(void)
         cpu_relax();
     }
 
-    pr_info("after status: 0x%x\n", desc->completion->status);
-
-    cmp = memcmp(kmalloc_area, kmalloc_area2, NPAGES * PAGE_SIZE);
-    if (cmp == 0)
+    if (poll >= POLL_RETRY_MAX || fault >= POLL_RETRY_MAX)
     {
-        pr_info("copy success\n");
+        pr_info("poll retry max\n");
+        goto done;
+    }
+
+    if (desc->completion->status != DSA_COMP_SUCCESS)
+    {
+        fault++;
+        if (DSA_COMP_STATUS(desc->completion->status) == DSA_COMP_PAGE_FAULT_NOBOF)
+        {
+            int wr = desc->completion->status & DSA_COMP_STATUS_WRITE;
+            volatile char *t = (char *)desc->completion->fault_addr;
+            wr ? *t = *t : *t;
+            hw->src_addr += desc->completion->bytes_completed;
+            hw->dst_addr += desc->completion->bytes_completed;
+            hw->xfer_size -= desc->completion->bytes_completed;
+            goto retry;
+        }
+        else
+        {
+            pr_info("desc failed status: 0x%x\n", desc->completion->status);
+        }
     }
     else
     {
-        pr_info("copy fail\n");
+        pr_info("desc success\n");
+        cmp = memcmp(kmalloc_area, kmalloc_area2, NPAGES * PAGE_SIZE);
+        cmp ? pr_info("copy fail\n") : pr_info("copy success\n");
     }
+done:
+    pr_info("after status: 0x%x\n", desc->completion->status);
+
     pr_info("fault info: 0x%x\n", desc->completion->fault_info);
     pr_info("result: 0x%x\n", desc->completion->result);
     pr_info("invalid flag uint32: 0x%x\n", desc->completion->invalid_flags);
 
     idxd_desc_complete(desc, IDXD_COMPLETE_NORMAL, 0);
 
-    // dma_unmap_single(device->dev, src1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
-    // dma_unmap_single(device->dev, dst1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+    dma_unmap_single(device->dev, src1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+    dma_unmap_single(device->dev, dst1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
 
     return;
 }
