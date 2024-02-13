@@ -1,5 +1,5 @@
 #include "/usr/src/linux-6.8-rc2/drivers/dma/idxd/idxd.h"
-#define NPAGES 1
+#define NPAGES 512
 
 #ifndef __SO2MMAP_H__
 #define __SO2MMAP_H__ 1

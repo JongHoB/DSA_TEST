@@ -104,6 +104,11 @@ static int init_dsa(void)
         return 0;
     }
 
+    if (wq->client_count > 0)
+    {
+        dma_release_channel(&wq->idxd_chan->chan);
+    }
+
     chan = dma_get_slave_channel(&wq->idxd_chan->chan);
 
     pr_info("wq num_descs: %d\n", wq->num_descs);
@@ -112,6 +117,8 @@ static int init_dsa(void)
     pr_info("dma device name: %s\n", dma_chan_name(&wq->idxd_chan->chan));
 
     pr_info("wq flags: 0x%x\n", wq->flags);
+    // set_bit(WQ_FLAG_ATS_DISABLE, &wq->flags);
+    // set_bit(WQ_FLAG_PRS_DISABLE, &wq->flags);
     // clear_bit(WQ_FLAG_ATS_DISABLE, &wq->flags);
     // clear_bit(WQ_FLAG_PRS_DISABLE, &wq->flags);
     // pr_info("after wq flags: 0x%x\n", wq->flags);
@@ -233,25 +240,48 @@ static void dsa_copy(void)
     struct dsa_hw_desc *hw = NULL;
     struct dma_device *device = &idxd_device->idxd_dma->dma;
     dma_addr_t src1, src2, dst1, dst2;
-    struct timespec64 start, end, start2, end2;
+    struct timespec64 start, end, start2, end2, start3, end3, start4, end4;
     int cmp = 0;
     int poll = 0;
     int rc = 0;
     int fault = 0;
 
+    ktime_get_ts64(&start);
     src1 = dma_map_single(device->dev, kmalloc_area, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+    ktime_get_ts64(&end);
     if (dma_mapping_error(chan->device->dev, src1))
     {
         pr_info("dma_map_single error\n");
     }
+    ktime_get_ts64(&start2);
     dst1 = dma_map_single(device->dev, kmalloc_area2, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+    ktime_get_ts64(&end2);
     if (dma_mapping_error(chan->device->dev, dst1))
     {
         pr_info("dma_map_single error\n");
     }
 
-    // src1 = (dma_addr_t)kmalloc_area;
-    // dst1 = (dma_addr_t)kmalloc_area2;
+    ktime_get_ts64(&start3);
+    src2 = dma_map_single(device->dev, kmalloc_area3, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+    ktime_get_ts64(&end3);
+    if (dma_mapping_error(chan->device->dev, src2))
+    {
+        pr_info("dma_map_single error\n");
+    }
+
+    ktime_get_ts64(&start4);
+    dst2 = dma_map_single(device->dev, kmalloc_area4, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+    ktime_get_ts64(&end4);
+    if (dma_mapping_error(chan->device->dev, dst2))
+    {
+        pr_info("dma_map_single error\n");
+    }
+
+    // pr_info("kmalloc_area : %p and src1 : %p\n", virt_to_phys(kmalloc_area), virt_to_phys(src1));
+    // pr_info("kmalloc_area2 : %p and dst1 : %p\n", virt_to_phys(kmalloc_area2), virt_to_phys(dst1));
+
+    // src1 = virt_to_phys(kmalloc_area);
+    // dst1 = virt_to_phys(kmalloc_area2);
 
     struct dma_async_tx_descriptor *dma_desc = device->device_prep_dma_memcpy(chan, dst1, src1, NPAGES * PAGE_SIZE, IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
     if (!dma_desc)
@@ -270,14 +300,12 @@ static void dsa_copy(void)
 retry:
     pr_info("xfer_size: %d\n", desc->hw->xfer_size);
 
-    ktime_get_ts64(&start);
     desc->txd.cookie = desc->txd.tx_submit(&desc->txd);
 
     while (!desc->completion->status && poll++ < POLL_RETRY_MAX)
     {
         cpu_relax();
     }
-    ktime_get_ts64(&end);
 
     if (poll >= POLL_RETRY_MAX || fault >= POLL_RETRY_MAX)
     {
@@ -316,19 +344,20 @@ done:
     pr_info("result: 0x%x\n", desc->completion->result);
     pr_info("invalid flag uint32: 0x%x\n", desc->completion->invalid_flags);
 
-    pr_info("dsa time: %lld\n", end.tv_nsec - start.tv_nsec);
-
     idxd_desc_complete(desc, IDXD_COMPLETE_NORMAL, 0);
 
     dma_unmap_single(device->dev, src1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
     dma_unmap_single(device->dev, dst1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
 
-    ktime_get_ts64(&start2);
     memmove(kmalloc_area4, kmalloc_area3, NPAGES * PAGE_SIZE);
-    ktime_get_ts64(&end2);
+
     cmp = memcmp(kmalloc_area3, kmalloc_area4, NPAGES * PAGE_SIZE);
     cmp ? pr_info("copy fail\n") : pr_info("copy success\n");
-    pr_info("memmove time: %lld\n", end2.tv_nsec - start2.tv_nsec);
+
+    pr_info("time1: %lld\n", end.tv_nsec - start.tv_nsec);
+    pr_info("time2: %lld\n", end2.tv_nsec - start2.tv_nsec);
+    pr_info("time3: %lld\n", end3.tv_nsec - start3.tv_nsec);
+    pr_info("time4: %lld\n", end4.tv_nsec - start4.tv_nsec);
 
     return;
 }
