@@ -15,6 +15,7 @@
 #include <linux/uaccess.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
+#include <linux/export.h>
 
 #include <linux/idxd.h>
 #include <linux/dmaengine.h>
@@ -37,6 +38,7 @@ MODULE_IMPORT_NS(IDXD);
 static struct dma_chan *chan = NULL;
 static struct idxd_wq *wq;
 struct idxd_device *idxd_device;
+struct device *dev;
 
 /* pointer to the vmalloc'd area, rounded up to a page boundary */
 static char *kmalloc_area;
@@ -49,7 +51,7 @@ static int init_dsa(void)
 
     struct pci_dev *pci_dev = NULL;
     struct pci_dev *pci_dev_list[8];
-    struct device *dev = NULL;
+
     struct pci_device_id pci_device_id = {PCI_DEVICE_DATA(INTEL, DSA_SPR0, NULL)};
     int device_count = 0;
     unsigned int pasid;
@@ -104,6 +106,15 @@ static int init_dsa(void)
         return 0;
     }
 
+    if (is_idxd_wq_kernel(wq) && device_pasid_enabled(wq->idxd))
+    {
+        pr_info("wq is kernel and pasid enabled\n");
+    }
+    else
+    {
+        pr_info("wq is kernel and pasid not enabled\n");
+    }
+
     if (wq->client_count > 0)
     {
         dma_release_channel(&wq->idxd_chan->chan);
@@ -115,8 +126,10 @@ static int init_dsa(void)
 
     // dma infos
     pr_info("dma device name: %s\n", dma_chan_name(&wq->idxd_chan->chan));
+    pr_info("current pasid, %d\n", wq->idxd->pasid);
 
     pr_info("wq flags: 0x%x\n", wq->flags);
+
     // set_bit(WQ_FLAG_ATS_DISABLE, &wq->flags);
     // set_bit(WQ_FLAG_PRS_DISABLE, &wq->flags);
     // clear_bit(WQ_FLAG_ATS_DISABLE, &wq->flags);
@@ -246,20 +259,19 @@ static void dsa_copy(void)
     int rc = 0;
     int fault = 0;
 
-    ktime_get_ts64(&start);
-    src1 = dma_map_single(device->dev, kmalloc_area, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
-    ktime_get_ts64(&end);
-    if (dma_mapping_error(chan->device->dev, src1))
-    {
-        pr_info("dma_map_single error\n");
-    }
-    ktime_get_ts64(&start2);
-    dst1 = dma_map_single(device->dev, kmalloc_area2, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
-    ktime_get_ts64(&end2);
-    if (dma_mapping_error(chan->device->dev, dst1))
-    {
-        pr_info("dma_map_single error\n");
-    }
+    // src1 = dma_map_single(device->dev, kmalloc_area, NPAGES * PAGE_SIZE, DMA_TO_DEVICE);
+
+    // if (dma_mapping_error(chan->device->dev, src1))
+    // {
+    //     pr_info("dma_map_single error\n");
+    // }
+
+    // dst1 = dma_map_single(device->dev, kmalloc_area2, NPAGES * PAGE_SIZE, DMA_FROM_DEVICE);
+
+    // if (dma_mapping_error(chan->device->dev, dst1))
+    // {
+    //     pr_info("dma_map_single error\n");
+    // }
 
     ktime_get_ts64(&start3);
     src2 = dma_map_single(device->dev, kmalloc_area3, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
@@ -283,6 +295,13 @@ static void dsa_copy(void)
     // src1 = virt_to_phys(kmalloc_area);
     // dst1 = virt_to_phys(kmalloc_area2);
 
+    ktime_get_ts64(&start);
+    src1 = dma_map_resource(dev, virt_to_phys(kmalloc_area), NPAGES * PAGE_SIZE, DMA_TO_DEVICE, DMA_ATTR_PRIVILEGED);
+    ktime_get_ts64(&end);
+    ktime_get_ts64(&start2);
+    dst1 = dma_map_resource(dev, virt_to_phys(kmalloc_area2), NPAGES * PAGE_SIZE, DMA_FROM_DEVICE, DMA_ATTR_PRIVILEGED);
+    ktime_get_ts64(&end2);
+
     struct dma_async_tx_descriptor *dma_desc = device->device_prep_dma_memcpy(chan, dst1, src1, NPAGES * PAGE_SIZE, IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
     if (!dma_desc)
     {
@@ -298,7 +317,7 @@ static void dsa_copy(void)
     pr_info("init status: 0x%x\n", desc->completion->status);
 
 retry:
-    pr_info("xfer_size: %d\n", desc->hw->xfer_size);
+    // pr_info("xfer_size: %d\n", desc->hw->xfer_size);
 
     desc->txd.cookie = desc->txd.tx_submit(&desc->txd);
 
@@ -345,14 +364,19 @@ done:
     pr_info("invalid flag uint32: 0x%x\n", desc->completion->invalid_flags);
 
     idxd_desc_complete(desc, IDXD_COMPLETE_NORMAL, 0);
-
-    dma_unmap_single(device->dev, src1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
-    dma_unmap_single(device->dev, dst1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
-
-    memmove(kmalloc_area4, kmalloc_area3, NPAGES * PAGE_SIZE);
-
-    cmp = memcmp(kmalloc_area3, kmalloc_area4, NPAGES * PAGE_SIZE);
+    cmp = memcmp(kmalloc_area, kmalloc_area2, NPAGES * PAGE_SIZE);
     cmp ? pr_info("copy fail\n") : pr_info("copy success\n");
+
+    // dma_unmap_single(device->dev, src1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+    // dma_unmap_single(device->dev, dst1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+
+    dma_unmap_resource(dev, src1, NPAGES * PAGE_SIZE, DMA_TO_DEVICE, DMA_ATTR_PRIVILEGED);
+    dma_unmap_resource(dev, dst1, NPAGES * PAGE_SIZE, DMA_FROM_DEVICE, DMA_ATTR_PRIVILEGED);
+
+    // memmove(kmalloc_area4, kmalloc_area3, NPAGES * PAGE_SIZE);
+
+    // cmp = memcmp(kmalloc_area3, kmalloc_area4, NPAGES * PAGE_SIZE);
+    // cmp ? pr_info("copy fail\n") : pr_info("copy success\n");
 
     pr_info("time1: %lld\n", end.tv_nsec - start.tv_nsec);
     pr_info("time2: %lld\n", end2.tv_nsec - start2.tv_nsec);

@@ -36,6 +36,64 @@ static struct dma_chan *chan = NULL;
 static struct idxd_wq *wq;
 struct idxd_device *idxd_device;
 
+static int idxd_enable_system_pasid(struct idxd_device *idxd)
+{
+    struct pci_dev *pdev = idxd->pdev;
+    struct device *dev = &pdev->dev;
+    struct iommu_domain *domain;
+    ioasid_t pasid;
+    int ret;
+
+    /*
+     * Attach a global PASID to the DMA domain so that we can use ENQCMDS
+     * to submit work on buffers mapped by DMA API.
+     */
+    domain = iommu_get_domain_for_dev(dev);
+    if (!domain)
+        return -EPERM;
+
+    pasid = iommu_alloc_global_pasid(dev);
+    if (pasid == IOMMU_PASID_INVALID)
+        return -ENOSPC;
+    pr_info("pasid: %d\n", pasid);
+    /*
+     * DMA domain is owned by the driver, it should support all valid
+     * types such as DMA-FQ, identity, etc.
+     */
+    ret = iommu_attach_device_pasid(domain, dev, pasid);
+    pr_info("ret: %d\n", ret);
+    if (ret)
+    {
+        dev_err(dev, "failed to attach device pasid %d, domain type %d",
+                pasid, domain->type);
+        iommu_free_global_pasid(pasid);
+        return ret;
+    }
+
+    /* Since we set user privilege for kernel DMA, enable completion IRQ */
+    idxd_set_user_intr(idxd, 1);
+    idxd->pasid = pasid;
+
+    return pasid;
+}
+
+static void idxd_disable_system_pasid(struct idxd_device *idxd)
+{
+    struct pci_dev *pdev = idxd->pdev;
+    struct device *dev = &pdev->dev;
+    struct iommu_domain *domain;
+
+    domain = iommu_get_domain_for_dev(dev);
+    if (!domain)
+        return;
+
+    iommu_detach_device_pasid(domain, dev, idxd->pasid);
+    iommu_free_global_pasid(idxd->pasid);
+
+    idxd_set_user_intr(idxd, 0);
+    idxd->sva = NULL;
+    idxd->pasid = IOMMU_PASID_INVALID;
+}
 static int
 init_dsa(void)
 {
@@ -47,6 +105,7 @@ init_dsa(void)
     int device_count = 0;
     unsigned int pasid;
     struct iommu_sva *sva;
+    int rc;
 
     while ((pci_dev = pci_get_device(pci_device_id.vendor, pci_device_id.device, pci_dev)) != NULL)
     {
@@ -60,42 +119,52 @@ init_dsa(void)
             break;
     }
 
-    // if (device_count < 8)
-    // {
-    //     pr_err("could not find 8 DSA devices\n");
-    //     return -1;
-    // }
+    if (device_count < 8)
+    {
+        pr_err("could not find 8 DSA devices\n");
+        return -1;
+    }
 
-    // dev = &pci_dev_list[2]->dev;
+    dev = &pci_dev_list[2]->dev;
 
-    // idxd_device = pci_get_drvdata(pci_dev_list[2]);
+    idxd_device = pci_get_drvdata(pci_dev_list[2]);
 
-    // if (!idxd_device)
-    // {
-    //     pr_err("could not get idxd device\n");
-    //     return -1;
-    // }
-    // if (!test_bit(IDXD_FLAG_CONFIGURABLE, &idxd_device->flags))
-    // {
-    //     pr_err("idxd device is not configurable\n");
-    // }
-    // if (idxd_device->wqs[1]->state != IDXD_WQ_ENABLED)
-    // {
-    //     pr_err("idxd wq 1 is not enabled\n");
-    //     return -1;
-    // }
+    if (!idxd_device)
+    {
+        pr_err("could not get idxd device\n");
+        return -1;
+    }
+    if (!test_bit(IDXD_FLAG_CONFIGURABLE, &idxd_device->flags))
+    {
+        pr_err("idxd device is not configurable\n");
+    }
+    if (idxd_device->wqs[1]->state != IDXD_WQ_ENABLED)
+    {
+        pr_err("idxd wq 1 is not enabled\n");
+        return -1;
+    }
 
-    // wq = idxd_device->wqs[1];
+    wq = idxd_device->wqs[1];
 
-    // if (is_idxd_wq_dmaengine(wq))
-    // {
-    //     pr_info("wq is dmaengine\n");
-    // }
-    // else
-    // {
-    //     pr_info("wq is not dmaengine\n");
-    //     return 0;
-    // }
+    if (is_idxd_wq_dmaengine(wq))
+    {
+        pr_info("wq is dmaengine\n");
+    }
+    else
+    {
+        pr_info("wq is not dmaengine\n");
+        return 0;
+    }
+    if (is_idxd_wq_kernel(wq) && device_pasid_enabled(wq->idxd))
+    {
+        pr_info("wq is kernel and pasid enabled\n");
+    }
+    else
+    {
+        pr_info("wq is kernel and pasid not enabled\n");
+    }
+
+    pr_info("current pasid, %d\n", wq->idxd->pasid);
 
     // if (wq->client_count > 0)
     // {
@@ -105,8 +174,17 @@ init_dsa(void)
     // pr_info("wq num_descs: %d\n", wq->num_descs);
 
     // // dma infos
-    // pr_info("dma device name: %s\n", dma_chan_name(&wq->idxd_chan->chan));
+    pr_info("dma device name: %s\n", dma_chan_name(&wq->idxd_chan->chan));
 
+    idxd_disable_system_pasid(idxd_device);
+
+    rc = idxd_enable_system_pasid(idxd_device);
+    if (rc)
+        dev_warn(dev, "No in-kernel DMA with PASID. %d\n", rc);
+    else
+        set_bit(IDXD_FLAG_PASID_ENABLED, &idxd_device->flags);
+
+    pr_info("current pasid, %d\n", wq->idxd->pasid);
     // pr_info("wq flags: 0x%x\n", wq->flags);
     // set_bit(WQ_FLAG_ATS_DISABLE, &wq->flags);
     // set_bit(WQ_FLAG_PRS_DISABLE, &wq->flags);
