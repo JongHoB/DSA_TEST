@@ -295,12 +295,26 @@ static void dsa_copy(void)
     // src1 = virt_to_phys(kmalloc_area);
     // dst1 = virt_to_phys(kmalloc_area2);
 
-    ktime_get_ts64(&start);
-    src1 = dma_map_resource(dev, virt_to_phys(kmalloc_area), NPAGES * PAGE_SIZE, DMA_TO_DEVICE, DMA_ATTR_PRIVILEGED);
-    ktime_get_ts64(&end);
-    ktime_get_ts64(&start2);
-    dst1 = dma_map_resource(dev, virt_to_phys(kmalloc_area2), NPAGES * PAGE_SIZE, DMA_FROM_DEVICE, DMA_ATTR_PRIVILEGED);
-    ktime_get_ts64(&end2);
+    // ktime_get_ts64(&start);
+    // src1 = dma_map_resource(dev, virt_to_phys(kmalloc_area), NPAGES * PAGE_SIZE, DMA_TO_DEVICE, DMA_ATTR_PRIVILEGED);
+    // ktime_get_ts64(&end);
+    // ktime_get_ts64(&start2);
+    // dst1 = dma_map_resource(dev, virt_to_phys(kmalloc_area2), NPAGES * PAGE_SIZE, DMA_FROM_DEVICE, DMA_ATTR_PRIVILEGED);
+    // ktime_get_ts64(&end2);
+    //  pr_info("kmalloc_area : %p and src1 : %p phys(src1) : %p \n", virt_to_phys(kmalloc_area),src1, virt_to_phys(src1));
+    //  pr_info("kmalloc_area2 : %p and dst1 : %p phys(dst1) : %p \n", virt_to_phys(kmalloc_area2),dst1, virt_to_phys(dst1));
+
+    struct page *page1 = alloc_pages(GFP_KERNEL, 2);
+    struct page *page2 = alloc_pages(GFP_KERNEL, 2);
+    strcpy(page_address(page1), "Hello, world! page1");
+    strcpy(page_address(page2), "Hello, world! page2");
+    cmp = memcmp(page_address(page1), page_address(page2), PAGE_SIZE * 4);
+    cmp ? pr_info("Not same pages\n") : pr_info("same pages\n");
+    pr_info("page1: %s\n", page_address(page1));
+    pr_info("page2: %s\n", page_address(page2));
+
+    src1 = dma_map_page(dev, page1, 0, PAGE_SIZE * 4, DMA_TO_DEVICE);
+    dst1 = dma_map_page(dev, page2, 0, PAGE_SIZE * 4, DMA_FROM_DEVICE);
 
     struct dma_async_tx_descriptor *dma_desc = device->device_prep_dma_memcpy(chan, dst1, src1, NPAGES * PAGE_SIZE, IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
     if (!dma_desc)
@@ -353,8 +367,11 @@ retry:
     else
     {
         pr_info("desc success\n");
-        cmp = memcmp(kmalloc_area, kmalloc_area2, NPAGES * PAGE_SIZE);
-        cmp ? pr_info("copy fail\n") : pr_info("copy success\n");
+        // cmp = memcmp(kmalloc_area, kmalloc_area2, NPAGES * PAGE_SIZE);
+        // cmp ? pr_info("copy fail\n") : pr_info("copy success\n");
+
+        cmp = memcmp(page_address(page1), page_address(page2), PAGE_SIZE * 4);
+        cmp ? pr_info("Not same pages\n") : pr_info("same pages\n");
     }
 done:
     pr_info("after status: 0x%x\n", desc->completion->status);
@@ -364,24 +381,32 @@ done:
     pr_info("invalid flag uint32: 0x%x\n", desc->completion->invalid_flags);
 
     idxd_desc_complete(desc, IDXD_COMPLETE_NORMAL, 0);
-    cmp = memcmp(kmalloc_area, kmalloc_area2, NPAGES * PAGE_SIZE);
-    cmp ? pr_info("copy fail\n") : pr_info("copy success\n");
+    // cmp = memcmp(kmalloc_area, kmalloc_area2, NPAGES * PAGE_SIZE);
+    // cmp ? pr_info("copy fail\n") : pr_info("copy success\n");
+
+    cmp = memcmp(page_address(page1), page_address(page2), PAGE_SIZE * 4);
+    cmp ? pr_info("Not same pages\n") : pr_info("same pages\n");
+    pr_info("page1: %s\n", page_address(page1));
+    pr_info("page2: %s\n", page_address(page2));
 
     // dma_unmap_single(device->dev, src1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
     // dma_unmap_single(device->dev, dst1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
 
-    dma_unmap_resource(dev, src1, NPAGES * PAGE_SIZE, DMA_TO_DEVICE, DMA_ATTR_PRIVILEGED);
-    dma_unmap_resource(dev, dst1, NPAGES * PAGE_SIZE, DMA_FROM_DEVICE, DMA_ATTR_PRIVILEGED);
+    // dma_unmap_resource(dev, src1, NPAGES * PAGE_SIZE, DMA_TO_DEVICE, DMA_ATTR_PRIVILEGED);
+    // dma_unmap_resource(dev, dst1, NPAGES * PAGE_SIZE, DMA_FROM_DEVICE, DMA_ATTR_PRIVILEGED);
+
+    dma_unmap_page(dev, src1, PAGE_SIZE * 4, DMA_TO_DEVICE);
+    dma_unmap_page(dev, dst1, PAGE_SIZE * 4, DMA_FROM_DEVICE);
 
     // memmove(kmalloc_area4, kmalloc_area3, NPAGES * PAGE_SIZE);
 
     // cmp = memcmp(kmalloc_area3, kmalloc_area4, NPAGES * PAGE_SIZE);
     // cmp ? pr_info("copy fail\n") : pr_info("copy success\n");
 
-    pr_info("time1: %lld\n", end.tv_nsec - start.tv_nsec);
-    pr_info("time2: %lld\n", end2.tv_nsec - start2.tv_nsec);
-    pr_info("time3: %lld\n", end3.tv_nsec - start3.tv_nsec);
-    pr_info("time4: %lld\n", end4.tv_nsec - start4.tv_nsec);
+    // pr_info("time1: %lld\n", end.tv_nsec - start.tv_nsec);
+    // pr_info("time2: %lld\n", end2.tv_nsec - start2.tv_nsec);
+    // pr_info("time3: %lld\n", end3.tv_nsec - start3.tv_nsec);
+    // pr_info("time4: %lld\n", end4.tv_nsec - start4.tv_nsec);
 
     return;
 }
