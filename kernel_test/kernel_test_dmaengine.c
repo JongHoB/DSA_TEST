@@ -43,41 +43,42 @@ struct device *dev;
 /* pointer to the vmalloc'd area, rounded up to a page boundary */
 static char *kmalloc_area;
 static char *kmalloc_area2;
-static char *kmalloc_area3;
-static char *kmalloc_area4;
+
+static struct page *page1;
+static struct page *page2;
+static struct page *page3;
+static struct page *page4;
 
 static int init_dsa(void)
 {
 
     struct pci_dev *pci_dev = NULL;
-    struct pci_dev *pci_dev_list[8];
+    struct pci_dev *pci_dev_list[DSA_LIST];
 
     struct pci_device_id pci_device_id = {PCI_DEVICE_DATA(INTEL, DSA_SPR0, NULL)};
     int device_count = 0;
-    unsigned int pasid;
-    struct iommu_sva *sva;
 
     while ((pci_dev = pci_get_device(pci_device_id.vendor, pci_device_id.device, pci_dev)) != NULL)
     {
         pci_dev_list[device_count] = pci_dev;
         device_count++;
-        struct idxd_device *idxd_device = pci_get_drvdata(pci_dev);
-        pr_info("device: %d\n", device_count);
-        pr_info("wq ats support:%d\n", idxd_device->hw.wq_cap.wq_ats_support);
-        pr_info("wq prs support:%d\n", idxd_device->hw.wq_cap.wq_prs_support);
-        if (device_count >= 8)
+        // struct idxd_device *idxd_device = pci_get_drvdata(pci_dev);
+        // pr_info("device: %d\n", device_count);
+        // pr_info("wq ats support:%d\n", idxd_device->hw.wq_cap.wq_ats_support);
+        // pr_info("wq prs support:%d\n", idxd_device->hw.wq_cap.wq_prs_support);
+        if (device_count >= DSA_LIST)
             break;
     }
 
-    if (device_count < 8)
+    if (device_count < DSA_LIST)
     {
-        pr_err("could not find 8 DSA devices\n");
+        pr_err("could not find %d DSA devices\n", DSA_LIST);
         return -1;
     }
 
-    dev = &pci_dev_list[2]->dev;
+    dev = &pci_dev_list[DSA_NUM]->dev; // dsa4(3rd device)
 
-    idxd_device = pci_get_drvdata(pci_dev_list[2]);
+    idxd_device = pci_get_drvdata(pci_dev_list[DSA_NUM]);
 
     if (!idxd_device)
     {
@@ -88,13 +89,13 @@ static int init_dsa(void)
     {
         pr_err("idxd device is not configurable\n");
     }
-    if (idxd_device->wqs[1]->state != IDXD_WQ_ENABLED)
+    if (idxd_device->wqs[WQ_NUM]->state != IDXD_WQ_ENABLED)
     {
-        pr_err("idxd wq 1 is not enabled\n");
+        pr_err("idxd wq %d is not enabled\n", WQ_NUM);
         return -1;
     }
 
-    wq = idxd_device->wqs[1];
+    wq = idxd_device->wqs[WQ_NUM]; // wq1
 
     if (is_idxd_wq_dmaengine(wq))
     {
@@ -126,7 +127,6 @@ static int init_dsa(void)
 
     // dma infos
     pr_info("dma device name: %s\n", dma_chan_name(&wq->idxd_chan->chan));
-    pr_info("current pasid, %d\n", wq->idxd->pasid);
 
     pr_info("wq flags: 0x%x\n", wq->flags);
 
@@ -136,30 +136,106 @@ static int init_dsa(void)
     // clear_bit(WQ_FLAG_PRS_DISABLE, &wq->flags);
     // pr_info("after wq flags: 0x%x\n", wq->flags);
 
-    // sva = iommu_sva_bind_device(dev, current->mm);
-    // if (IS_ERR(sva))
-    // {
-    //     pr_info("iommu_sva_bind_device failed\n");
-    // }
-    // else
-    // {
-    //     pr_info("iommu_sva_bind_device success\n");
-    // }
-    // pasid = iommu_sva_get_pasid(sva);
-
-    // pr_info("pasid: %d\n", pasid);
-    // if (idxd_wq_set_pasid(wq, pasid) < 0)
-    // {
-    //     pr_info("idxd_wq_set_pasid failed\n");
-    // }
-    // else
-    // {
-    //     pr_info("idxd_wq_set_pasid success\n");
-    // }
-
     return 0;
 }
-static int init_cdev(void)
+
+// for struct page region
+static int init_region_page(void)
+{
+    int ret = 0;
+    unsigned long pfn_first, pfn_last;
+    page1 = alloc_pages(GFP_KERNEL, PAGE_ORDER);
+
+    if (!page1)
+    {
+        pr_err("could not allocate memory\n");
+        ret = -ENOMEM;
+        goto out;
+    }
+
+    pfn_first = page_to_pfn(page1);
+    pfn_last = page_to_pfn(page1 + (1 << PAGE_ORDER) - 1);
+
+    if (pfn_last - pfn_first + 1 != int_pow(2, PAGE_ORDER))
+    {
+        pr_info("page1 not continuous\n");
+        ret = -ENOMEM;
+        goto out;
+    }
+
+    page2 = alloc_pages(GFP_KERNEL, PAGE_ORDER);
+    if (!page2)
+    {
+        pr_err("could not allocate memory\n");
+        ret = -ENOMEM;
+        goto out;
+    }
+    pfn_first = page_to_pfn(page2);
+    pfn_last = page_to_pfn(page2 + (1 << PAGE_ORDER) - 1);
+
+    if (pfn_last - pfn_first + 1 != int_pow(2, PAGE_ORDER))
+    {
+        pr_info("page2 not continuous\n");
+        ret = -ENOMEM;
+        goto out;
+    }
+
+    page3 = alloc_pages(GFP_KERNEL, PAGE_ORDER);
+    if (!page3)
+    {
+        pr_err("could not allocate memory\n");
+        ret = -ENOMEM;
+        goto out;
+    }
+    pfn_first = page_to_pfn(page3);
+    pfn_last = page_to_pfn(page3 + (1 << PAGE_ORDER) - 1);
+
+    if (pfn_last - pfn_first + 1 != int_pow(2, PAGE_ORDER))
+    {
+        pr_info("page3 not continuous\n");
+        ret = -ENOMEM;
+        goto out;
+    }
+
+    page4 = alloc_pages(GFP_KERNEL, PAGE_ORDER);
+    if (!page4)
+    {
+        pr_err("could not allocate memory\n");
+        ret = -ENOMEM;
+        goto out;
+    }
+    pfn_first = page_to_pfn(page4);
+    pfn_last = page_to_pfn(page4 + (1 << PAGE_ORDER) - 1);
+
+    if (pfn_last - pfn_first + 1 != int_pow(2, PAGE_ORDER))
+    {
+        pr_info("page4 not continuous\n");
+        ret = -ENOMEM;
+        goto out;
+    }
+    strcpy(page_address(page1), "Hello, world! page1");
+    strcpy(page_address(page2), "Hello, world! page2");
+    strcpy(page_address(page3), "Hello, world! page3");
+    strcpy(page_address(page4), "Hello, world! page4");
+    cmp = memcmp(page_address(page1), page_address(page2), PAGE_SIZE * int_pow(2, PAGE_ORDER));
+    cmp ? pr_info("1 and 2 Not same pages\n") : pr_info("1 and 2 same pages\n");
+
+    cmp = memcmp(page_address(page3), page_address(page4), PAGE_SIZE * int_pow(2, PAGE_ORDER));
+    cmp ? pr_info("3 and 4 Not same pages\n") : pr_info("3 and 4 same pages\n");
+
+    return 0;
+
+out:
+    __free_pages(page1, PAGE_ORDER);
+    __free_pages(page2, PAGE_ORDER);
+    __free_pages(page3, PAGE_ORDER);
+    __free_pages(page4, PAGE_ORDER);
+
+    return ret;
+}
+
+// for kmalloc region
+static int init_region(void)
 {
     int ret = 0;
     int i;
@@ -167,8 +243,6 @@ static int init_cdev(void)
     /* TODO 1/6: allocate NPAGES using kmalloc */
     kmalloc_area = (char *)kmalloc(NPAGES * PAGE_SIZE, GFP_KERNEL);
     kmalloc_area2 = (char *)kmalloc(NPAGES * PAGE_SIZE, GFP_KERNEL);
-    kmalloc_area3 = (char *)kmalloc(NPAGES * PAGE_SIZE, GFP_KERNEL);
-    kmalloc_area4 = (char *)kmalloc(NPAGES * PAGE_SIZE, GFP_KERNEL);
 
     if (kmalloc_area == NULL)
     {
@@ -182,26 +256,12 @@ static int init_cdev(void)
         pr_err("could not allocate memory\n");
         goto out_kfree;
     }
-    if (kmalloc_area3 == NULL)
-    {
-        ret = -ENOMEM;
-        pr_err("could not allocate memory\n");
-        goto out_kfree;
-    }
-    if (kmalloc_area4 == NULL)
-    {
-        ret = -ENOMEM;
-        pr_err("could not allocate memory\n");
-        goto out_kfree;
-    }
 
     /* TODO 1/2: mark pages as reserved */
     for (i = 0; i < NPAGES * PAGE_SIZE; i += PAGE_SIZE)
     {
         SetPageReserved(virt_to_page(kmalloc_area + i));
         SetPageReserved(virt_to_page(kmalloc_area2 + i));
-        SetPageReserved(virt_to_page(kmalloc_area3 + i));
-        SetPageReserved(virt_to_page(kmalloc_area4 + i));
     }
 
     for (i = 0; i < NPAGES * PAGE_SIZE; i += PAGE_SIZE)
@@ -210,11 +270,6 @@ static int init_cdev(void)
         // pr_info("area 1: %lu\n", pfn);
         pfn = page_to_pfn(virt_to_page(kmalloc_area2 + i));
         // pr_info("area 2: %lu\n", pfn);
-
-        pfn = page_to_pfn(virt_to_page(kmalloc_area3 + i));
-        // pr_info("area 3: %lu\n", pfn);
-        pfn = page_to_pfn(virt_to_page(kmalloc_area4 + i));
-        // pr_info("area 4: %lu\n", pfn);
     }
 
     for (i = 0; i < NPAGES * PAGE_SIZE; i += PAGE_SIZE)
@@ -222,16 +277,12 @@ static int init_cdev(void)
         // Write kmalloc in each page
         sprintf(kmalloc_area + i, "kmalloc %ld", i / PAGE_SIZE);
         sprintf(kmalloc_area2 + i, "kmalloc2 %ld", i / PAGE_SIZE);
-        sprintf(kmalloc_area3 + i, "kmalloc3 %ld", i / PAGE_SIZE);
-        sprintf(kmalloc_area4 + i, "kmalloc4 %ld", i / PAGE_SIZE);
 
         // Last of the String is \0
         // After the null i will fill it with 1
         // So i can check if the data is written correctly
         memset(kmalloc_area + i + strlen(kmalloc_area + i) + 1, '0', PAGE_SIZE - strlen(kmalloc_area + i) - 1);
         memset(kmalloc_area2 + i + strlen(kmalloc_area2 + i) + 1, '0', PAGE_SIZE - strlen(kmalloc_area2 + i) - 1);
-        memset(kmalloc_area3 + i + strlen(kmalloc_area3 + i) + 1, '0', PAGE_SIZE - strlen(kmalloc_area3 + i) - 1);
-        memset(kmalloc_area4 + i + strlen(kmalloc_area4 + i) + 1, '0', PAGE_SIZE - strlen(kmalloc_area4 + i) - 1);
     }
 
     pr_info("mykmap module loaded\n");
@@ -241,8 +292,6 @@ static int init_cdev(void)
 out_kfree:
     kfree(kmalloc_area);
     kfree(kmalloc_area2);
-    kfree(kmalloc_area3);
-    kfree(kmalloc_area4);
 
     return ret;
 }
@@ -259,7 +308,11 @@ static void dsa_copy(void)
     int rc = 0;
     int fault = 0;
 
-    // src1 = dma_map_single(device->dev, kmalloc_area, NPAGES * PAGE_SIZE, DMA_TO_DEVICE);
+    ///////////////////////
+    // kmalloc mapping test
+    ///////////////////////
+
+    //  src1 = dma_map_single(device->dev, kmalloc_area, NPAGES * PAGE_SIZE, DMA_TO_DEVICE);
 
     // if (dma_mapping_error(chan->device->dev, src1))
     // {
@@ -273,48 +326,44 @@ static void dsa_copy(void)
     //     pr_info("dma_map_single error\n");
     // }
 
-    ktime_get_ts64(&start3);
-    src2 = dma_map_single(device->dev, kmalloc_area3, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
-    ktime_get_ts64(&end3);
-    if (dma_mapping_error(chan->device->dev, src2))
-    {
-        pr_info("dma_map_single error\n");
-    }
-
-    ktime_get_ts64(&start4);
-    dst2 = dma_map_single(device->dev, kmalloc_area4, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
-    ktime_get_ts64(&end4);
-    if (dma_mapping_error(chan->device->dev, dst2))
-    {
-        pr_info("dma_map_single error\n");
-    }
-
-    // pr_info("kmalloc_area : %p and src1 : %p\n", virt_to_phys(kmalloc_area), virt_to_phys(src1));
-    // pr_info("kmalloc_area2 : %p and dst1 : %p\n", virt_to_phys(kmalloc_area2), virt_to_phys(dst1));
+    ///////////////////////
+    // phys mapping test
+    // I know that dma_map_resource is for MMIO devices
+    // but it works......
+    ///////////////////////
 
     // src1 = virt_to_phys(kmalloc_area);
     // dst1 = virt_to_phys(kmalloc_area2);
 
-    // ktime_get_ts64(&start);
     // src1 = dma_map_resource(dev, virt_to_phys(kmalloc_area), NPAGES * PAGE_SIZE, DMA_TO_DEVICE, DMA_ATTR_PRIVILEGED);
-    // ktime_get_ts64(&end);
-    // ktime_get_ts64(&start2);
+
     // dst1 = dma_map_resource(dev, virt_to_phys(kmalloc_area2), NPAGES * PAGE_SIZE, DMA_FROM_DEVICE, DMA_ATTR_PRIVILEGED);
-    // ktime_get_ts64(&end2);
-    //  pr_info("kmalloc_area : %p and src1 : %p phys(src1) : %p \n", virt_to_phys(kmalloc_area),src1, virt_to_phys(src1));
-    //  pr_info("kmalloc_area2 : %p and dst1 : %p phys(dst1) : %p \n", virt_to_phys(kmalloc_area2),dst1, virt_to_phys(dst1));
 
-    struct page *page1 = alloc_pages(GFP_KERNEL, 2);
-    struct page *page2 = alloc_pages(GFP_KERNEL, 2);
-    strcpy(page_address(page1), "Hello, world! page1");
-    strcpy(page_address(page2), "Hello, world! page2");
-    cmp = memcmp(page_address(page1), page_address(page2), PAGE_SIZE * 4);
-    cmp ? pr_info("Not same pages\n") : pr_info("same pages\n");
-    pr_info("page1: %s\n", page_address(page1));
-    pr_info("page2: %s\n", page_address(page2));
+    ///////////////////////
+    // struct page mapping test
+    ///////////////////////
 
-    src1 = dma_map_page(dev, page1, 0, PAGE_SIZE * 4, DMA_TO_DEVICE);
-    dst1 = dma_map_page(dev, page2, 0, PAGE_SIZE * 4, DMA_FROM_DEVICE);
+    ktime_get_ts64(&start);
+    src1 = dma_map_page(dev, page1, 0, PAGE_SIZE * int_pow(2, PAGE_ORDER), DMA_TO_DEVICE);
+    ktime_get_ts64(&end);
+
+    if (dma_mapping_error(dev, src1))
+    {
+        pr_info("dma_map_page error\n");
+    }
+
+    ktime_get_ts64(&start2);
+    dst1 = dma_map_page(dev, page2, 0, PAGE_SIZE * int_pow(2, PAGE_ORDER), DMA_FROM_DEVICE);
+    ktime_get_ts64(&end2);
+
+    if (dma_mapping_error(dev, dst1))
+    {
+        pr_info("dma_map_page error\n");
+    }
+
+    ///////////////////////
+    // DSA_MEMCPY PROCESS
+    ///////////////////////
 
     struct dma_async_tx_descriptor *dma_desc = device->device_prep_dma_memcpy(chan, dst1, src1, NPAGES * PAGE_SIZE, IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
     if (!dma_desc)
@@ -389,14 +438,28 @@ done:
     pr_info("page1: %s\n", page_address(page1));
     pr_info("page2: %s\n", page_address(page2));
 
+    ///////////////////////
+    // kmalloc mapping test
+    ///////////////////////
+
     // dma_unmap_single(device->dev, src1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
     // dma_unmap_single(device->dev, dst1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
+
+    ///////////////////////
+    // phys mapping test
+    // I know that dma_map_resource is for MMIO devices
+    // but it works......
+    ///////////////////////
 
     // dma_unmap_resource(dev, src1, NPAGES * PAGE_SIZE, DMA_TO_DEVICE, DMA_ATTR_PRIVILEGED);
     // dma_unmap_resource(dev, dst1, NPAGES * PAGE_SIZE, DMA_FROM_DEVICE, DMA_ATTR_PRIVILEGED);
 
-    dma_unmap_page(dev, src1, PAGE_SIZE * 4, DMA_TO_DEVICE);
-    dma_unmap_page(dev, dst1, PAGE_SIZE * 4, DMA_FROM_DEVICE);
+    ///////////////////////
+    // struct page mapping test
+    ///////////////////////
+
+    dma_unmap_page(dev, src1, PAGE_SIZE * int_pow(2, PAGE_ORDER), DMA_TO_DEVICE);
+    dma_unmap_page(dev, dst1, PAGE_SIZE * int_pow(2, PAGE_ORDER), DMA_FROM_DEVICE);
 
     // memmove(kmalloc_area4, kmalloc_area3, NPAGES * PAGE_SIZE);
 
@@ -414,7 +477,8 @@ done:
 static int __init
 my_init(void)
 {
-    int init_result = init_cdev();
+    // int init_result = init_region();
+    int init_result = init_region_page();
     if (init_result < 0)
     {
         return init_result;
@@ -428,7 +492,7 @@ my_init(void)
     return 0;
 }
 
-static void exit_cdev(void)
+static void exit_module(void)
 {
     int i;
 
@@ -441,20 +505,22 @@ static void exit_cdev(void)
         ClearPageReserved(virt_to_page(kmalloc_area2 + i));
     kfree(kmalloc_area2);
 
-    for (i = 0; i < NPAGES * PAGE_SIZE; i += PAGE_SIZE)
-        ClearPageReserved(virt_to_page(kmalloc_area3 + i));
-    kfree(kmalloc_area3);
+    pr_info("myvmap module unloaded\n");
+}
 
-    for (i = 0; i < NPAGES * PAGE_SIZE; i += PAGE_SIZE)
-        ClearPageReserved(virt_to_page(kmalloc_area4 + i));
-    kfree(kmalloc_area4);
-
+static void exit_module_page(void)
+{
+    __free_pages(page1, PAGE_ORDER);
+    __free_pages(page2, PAGE_ORDER);
+    __free_pages(page3, PAGE_ORDER);
+    __free_pages(page4, PAGE_ORDER);
     pr_info("myvmap module unloaded\n");
 }
 
 static void __exit my_exit(void)
 {
-    exit_cdev();
+    // exit_module();
+    exit_module_page();
     dma_release_channel(chan);
 }
 
