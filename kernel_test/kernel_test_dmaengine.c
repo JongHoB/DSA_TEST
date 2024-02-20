@@ -143,6 +143,7 @@ static int init_dsa(void)
 static int init_region_page(void)
 {
     int ret = 0;
+    int cmp = 0;
     unsigned long pfn_first, pfn_last;
     page1 = alloc_pages(GFP_KERNEL, PAGE_ORDER);
 
@@ -285,8 +286,6 @@ static int init_region(void)
         memset(kmalloc_area2 + i + strlen(kmalloc_area2 + i) + 1, '0', PAGE_SIZE - strlen(kmalloc_area2 + i) - 1);
     }
 
-    pr_info("mykmap module loaded\n");
-
     return 0;
 
 out_kfree:
@@ -298,14 +297,14 @@ out_kfree:
 
 static void dsa_copy(void)
 {
-    struct idxd_desc *desc = NULL;
+    struct idxd_desc *idxd_desc = NULL;
     struct dsa_hw_desc *hw = NULL;
     struct dma_device *device = &idxd_device->idxd_dma->dma;
     dma_addr_t src1, src2, dst1, dst2;
     struct timespec64 start, end, start2, end2, start3, end3, start4, end4;
     int cmp = 0;
     int poll = 0;
-    int rc = 0;
+    int ret = 0;
     int fault = 0;
 
     ///////////////////////
@@ -365,79 +364,96 @@ static void dsa_copy(void)
     // DSA_MEMCPY PROCESS
     ///////////////////////
 
-    struct dma_async_tx_descriptor *dma_desc = device->device_prep_dma_memcpy(chan, dst1, src1, NPAGES * PAGE_SIZE, IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
-    if (!dma_desc)
+    idxd_desc = idxd_desc_dma_submit_memcpy(chan, dst1, src1, PAGE_SIZE * int_pow(2, PAGE_ORDER), IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
+    if (IS_ERR(idxd_desc))
     {
-        pr_info("device_prep_dma_memcpy error\n");
+        dev_dbg(dev, "Failed to allocate descriptor\n");
+        dev_dbg(dev, "Error code: %ld\n", PTR_ERR(idxd_desc));
+        return;
     }
-    desc = container_of(dma_desc, struct idxd_desc, txd);
 
-    hw = desc->hw;
+    hw = idxd_desc->hw;
 
-    pr_info("opcode: 0x%x\n", hw->opcode);
-    pr_info("flags: 0x%x\n", hw->flags);
+    pr_info("transfer size: %dByte\n", hw->xfer_size);
 
-    pr_info("init status: 0x%x\n", desc->completion->status);
+    pr_info("opcode: 0x%x\nflags: 0x%x\ninit status: 0x%x\n", hw->opcode, hw->flags, idxd_desc->completion->status);
 
 retry:
-    // pr_info("xfer_size: %d\n", desc->hw->xfer_size);
+    // pr_info("xfer_size: %d\n", idxd_desc->hw->xfer_size);
 
-    desc->txd.cookie = desc->txd.tx_submit(&desc->txd);
+    // ret = idxd_submit_desc(wq, idxd_desc);
+    // if (ret)
+    // {
+    //     pr_info("submit failed\n");
+    //     goto out;
+    // }
+    ktime_get_ts64(&start3);
+    idxd_submit_desc(wq, idxd_desc);
 
-    while (!desc->completion->status && poll++ < POLL_RETRY_MAX)
+    while (!idxd_desc->completion->status && poll++ < POLL_RETRY_MAX)
     {
         cpu_relax();
     }
-
-    if (poll >= POLL_RETRY_MAX || fault >= POLL_RETRY_MAX)
+    ktime_get_ts64(&end3);
+    if (poll >= POLL_RETRY_MAX || fault >= FAULT_RETRY_MAX)
     {
         pr_info("poll retry max\n");
         goto done;
     }
 
-    if (desc->completion->status != DSA_COMP_SUCCESS)
+    if (idxd_desc->completion->status != DSA_COMP_SUCCESS)
     {
         fault++;
-        if (DSA_COMP_STATUS(desc->completion->status) == DSA_COMP_PAGE_FAULT_NOBOF)
+        if (DSA_COMP_STATUS(idxd_desc->completion->status) == DSA_COMP_PAGE_FAULT_NOBOF)
         {
-            int wr = desc->completion->status & DSA_COMP_STATUS_WRITE;
-            volatile char *t = (char *)desc->completion->fault_addr;
+            int wr = idxd_desc->completion->status & DSA_COMP_STATUS_WRITE;
+            volatile char *t = (char *)idxd_desc->completion->fault_addr;
             wr ? *t = *t : *t;
-            hw->src_addr += desc->completion->bytes_completed;
-            hw->dst_addr += desc->completion->bytes_completed;
-            hw->xfer_size -= desc->completion->bytes_completed;
+            hw->src_addr += idxd_desc->completion->bytes_completed;
+            hw->dst_addr += idxd_desc->completion->bytes_completed;
+            hw->xfer_size -= idxd_desc->completion->bytes_completed;
             goto retry;
         }
         else
         {
-            pr_info("desc failed status: 0x%x\n", desc->completion->status);
+            pr_info("desc failed status: 0x%x\n", idxd_desc->completion->status);
         }
     }
     else
     {
         pr_info("desc success\n");
-        // cmp = memcmp(kmalloc_area, kmalloc_area2, NPAGES * PAGE_SIZE);
-        // cmp ? pr_info("copy fail\n") : pr_info("copy success\n");
-
-        cmp = memcmp(page_address(page1), page_address(page2), PAGE_SIZE * 4);
-        cmp ? pr_info("Not same pages\n") : pr_info("same pages\n");
+        pr_info("poll: %d\nfault: %d\n", poll, fault);
     }
 done:
-    pr_info("after status: 0x%x\n", desc->completion->status);
+    pr_info("after status: 0x%x\nfault info: 0x%x\n", idxd_desc->completion->status, idxd_desc->completion->fault_info);
+    pr_info("result: 0x%x\ninvalid flag uint32: 0x%x\n", idxd_desc->completion->result, idxd_desc->completion->invalid_flags);
 
-    pr_info("fault info: 0x%x\n", desc->completion->fault_info);
-    pr_info("result: 0x%x\n", desc->completion->result);
-    pr_info("invalid flag uint32: 0x%x\n", desc->completion->invalid_flags);
+    idxd_desc_complete(idxd_desc, IDXD_COMPLETE_NORMAL, 0);
 
-    idxd_desc_complete(desc, IDXD_COMPLETE_NORMAL, 0);
     // cmp = memcmp(kmalloc_area, kmalloc_area2, NPAGES * PAGE_SIZE);
     // cmp ? pr_info("copy fail\n") : pr_info("copy success\n");
 
-    cmp = memcmp(page_address(page1), page_address(page2), PAGE_SIZE * 4);
-    cmp ? pr_info("Not same pages\n") : pr_info("same pages\n");
-    pr_info("page1: %s\n", page_address(page1));
-    pr_info("page2: %s\n", page_address(page2));
+    cmp = memcmp(page_address(page1), page_address(page2), PAGE_SIZE * int_pow(2, PAGE_ORDER));
+    cmp ? pr_info("DSA FAIL\n") : pr_info("DSA Success\n");
+    // pr_info("page1: %s\n", page_address(page1));
+    // pr_info("page2: %s\n", page_address(page2));
 
+    // memmove with CPU
+    pr_info("memmove start\n");
+
+    ktime_get_ts64(&start4);
+    memcpy(page_address(page4), page_address(page3), PAGE_SIZE * int_pow(2, PAGE_ORDER));
+    ktime_get_ts64(&end4);
+
+    cmp = memcmp(page_address(page4), page_address(page3), PAGE_SIZE * int_pow(2, PAGE_ORDER));
+    cmp ? pr_info("memmove copy fail\n") : pr_info("memmove copy success\n");
+
+    pr_info("src1 map time1: %lld\n", timespec64_to_ns(&end) - timespec64_to_ns(&start));
+    pr_info("dest1 map time2: %lld\n", timespec64_to_ns(&end2) - timespec64_to_ns(&start2));
+    pr_info("DSA memmove time3: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&start3));
+    pr_info("memmove time4: %lld\n", timespec64_to_ns(&end4) - timespec64_to_ns(&start4));
+
+out:
     ///////////////////////
     // kmalloc mapping test
     ///////////////////////
@@ -457,19 +473,8 @@ done:
     ///////////////////////
     // struct page mapping test
     ///////////////////////
-
     dma_unmap_page(dev, src1, PAGE_SIZE * int_pow(2, PAGE_ORDER), DMA_TO_DEVICE);
     dma_unmap_page(dev, dst1, PAGE_SIZE * int_pow(2, PAGE_ORDER), DMA_FROM_DEVICE);
-
-    // memmove(kmalloc_area4, kmalloc_area3, NPAGES * PAGE_SIZE);
-
-    // cmp = memcmp(kmalloc_area3, kmalloc_area4, NPAGES * PAGE_SIZE);
-    // cmp ? pr_info("copy fail\n") : pr_info("copy success\n");
-
-    // pr_info("time1: %lld\n", end.tv_nsec - start.tv_nsec);
-    // pr_info("time2: %lld\n", end2.tv_nsec - start2.tv_nsec);
-    // pr_info("time3: %lld\n", end3.tv_nsec - start3.tv_nsec);
-    // pr_info("time4: %lld\n", end4.tv_nsec - start4.tv_nsec);
 
     return;
 }
@@ -477,6 +482,7 @@ done:
 static int __init
 my_init(void)
 {
+    pr_info("mykmap module loaded\n");
     // int init_result = init_region();
     int init_result = init_region_page();
     if (init_result < 0)
