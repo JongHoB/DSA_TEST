@@ -68,6 +68,7 @@ static int init_dsa(void)
         // pr_info("device: %d\n", device_count);
         // pr_info("wq ats support:%d\n", idxd_device->hw.wq_cap.wq_ats_support);
         // pr_info("wq prs support:%d\n", idxd_device->hw.wq_cap.wq_prs_support);
+
         if (device_count >= DSA_LIST)
             break;
     }
@@ -142,10 +143,10 @@ static int init_region(void)
     int i;
 
     /* TODO 1/6: allocate NPAGES using kmalloc */
-    vmalloc_area = (char *)vmalloc(NPAGES * PAGE_SIZE, GFP_KERNEL);
-    vmalloc_area2 = (char *)vmalloc(NPAGES * PAGE_SIZE, GFP_KERNEL);
-    vmalloc_area3 = (char *)vmalloc(NPAGES * PAGE_SIZE, GFP_KERNEL);
-    vmalloc_area4 = (char *)vmalloc(NPAGES * PAGE_SIZE, GFP_KERNEL);
+    vmalloc_area = (char *)vmalloc(NPAGES * PAGE_SIZE);
+    vmalloc_area2 = (char *)vmalloc(NPAGES * PAGE_SIZE);
+    vmalloc_area3 = (char *)vmalloc(NPAGES * PAGE_SIZE);
+    vmalloc_area4 = (char *)vmalloc(NPAGES * PAGE_SIZE);
 
     if (vmalloc_area == NULL || vmalloc_area2 == NULL || vmalloc_area3 == NULL || vmalloc_area4 == NULL)
     {
@@ -157,21 +158,21 @@ static int init_region(void)
     /* TODO 1/2: mark pages as reserved */
     for (i = 0; i < NPAGES * PAGE_SIZE; i += PAGE_SIZE)
     {
-        SetPageReserved(virt_to_page(vmalloc_area + i));
-        SetPageReserved(virt_to_page(vmalloc_area2 + i));
-        SetPageReserved(virt_to_page(vmalloc_area3 + i));
-        SetPageReserved(virt_to_page(vmalloc_area4 + i));
+        SetPageReserved(vmalloc_to_page(vmalloc_area + i));
+        SetPageReserved(vmalloc_to_page(vmalloc_area2 + i));
+        SetPageReserved(vmalloc_to_page(vmalloc_area3 + i));
+        SetPageReserved(vmalloc_to_page(vmalloc_area4 + i));
     }
 
     for (i = 0; i < NPAGES * PAGE_SIZE; i += PAGE_SIZE)
     {
-        unsigned long pfn = page_to_pfn(virt_to_page(vmalloc_area + i));
+        unsigned long pfn = vmalloc_to_pfn(vmalloc_area + i);
         // pr_info("area 1: %lu\n", pfn);
-        pfn = page_to_pfn(virt_to_page(vmalloc_area2 + i));
+        pfn = vmalloc_to_pfn(vmalloc_area2 + i);
         // pr_info("area 2: %lu\n", pfn);
-        pfn = page_to_pfn(virt_to_page(vmalloc_area3 + i));
+        pfn = vmalloc_to_pfn(vmalloc_area3 + i);
         // pr_info("area 3: %lu\n", pfn);
-        pfn = page_to_pfn(virt_to_page(vmalloc_area4 + i));
+        pfn = vmalloc_to_pfn(vmalloc_area4 + i);
         // pr_info("area 4: %lu\n", pfn);
     }
 
@@ -203,11 +204,14 @@ out_vfree:
     return ret;
 }
 
-static void vmalloc_to_sgtable()
+static void vmalloc_to_sgtable(void)
 {
     // make vmalloc area to sgtable
     int i;
     struct scatterlist *sg;
+    struct page *page;
+    sgt1 = kzalloc(sizeof(*sgt1), GFP_KERNEL);
+    sgt2 = kzalloc(sizeof(*sgt2), GFP_KERNEL);
 
     if (sg_alloc_table(sgt1, NPAGES, GFP_KERNEL) || sg_alloc_table(sgt2, NPAGES, GFP_KERNEL) || sg_alloc_table(sgt3, NPAGES, GFP_KERNEL) || sg_alloc_table(sgt4, NPAGES, GFP_KERNEL))
     {
@@ -217,37 +221,35 @@ static void vmalloc_to_sgtable()
 
     for_each_sgtable_sg(sgt1, sg, i)
     {
-        sg_set_page(sg, virt_to_page(vmalloc_area + i * PAGE_SIZE), PAGE_SIZE, 0);
+        page = vmalloc_to_page(vmalloc_area + i * PAGE_SIZE);
+        if (!page)
+        {
+            goto free_sgt;
+        }
+        sg_set_page(sg, page, PAGE_SIZE, 0);
     }
     pr_info("sgt1 nents: %d\n sgt1 orig_nents: %d\n", sgt1->nents, sgt1->orig_nents);
     for_each_sgtable_sg(sgt2, sg, i)
     {
-        sg_set_page(sg, virt_to_page(vmalloc_area2 + i * PAGE_SIZE), PAGE_SIZE, 0);
+        page = vmalloc_to_page(vmalloc_area2 + i * PAGE_SIZE);
+        if (!page)
+        {
+            goto free_sgt;
+        }
+        sg_set_page(sg, page, PAGE_SIZE, 0);
     }
     pr_info("sgt2 nents: %d\n sgt2 orig_nents: %d\n", sgt2->nents, sgt2->orig_nents);
-    for_each_sgtable_sg(sgt3, sg, i)
-    {
-        sg_set_page(sg, virt_to_page(vmalloc_area3 + i * PAGE_SIZE), PAGE_SIZE, 0);
-    }
-    pr_info("sgt3 nents: %d\n sgt3 orig_nents: %d\n", sgt3->nents, sgt3->orig_nents);
-    for_each_sgtable_sg(sgt4, sg, i)
-    {
-        sg_set_page(sg, virt_to_page(vmalloc_area4 + i * PAGE_SIZE), PAGE_SIZE, 0);
-    }
-    pr_info("sgt4 nents: %d\n sgt4 orig_nents: %d\n", sgt4->nents, sgt4->orig_nents);
 
     return;
 
 free_sgt:
     sg_free_table(sgt1);
     sg_free_table(sgt2);
-    sg_free_table(sgt3);
-    sg_free_table(sgt4);
 
     return;
 }
 
-static void sgtable_to_dma_map()
+static void sgtable_to_dma_map(void)
 {
     int ret;
 
@@ -277,30 +279,24 @@ static void dsa_copy(void)
     int poll = 0;
     int ret = 0;
     int fault = 0;
-
-    ///////////////////////
-    // kmalloc mapping test
-    ///////////////////////
-
-    //  src1 = dma_map_single(device->dev, vmalloc_area, NPAGES * PAGE_SIZE, DMA_TO_DEVICE);
-
-    // if (dma_mapping_error(chan->device->dev, src1))
-    // {
-    //     pr_info("dma_map_single error\n");
-    // }
-
-    // dst1 = dma_map_single(device->dev, vmalloc_area2, NPAGES * PAGE_SIZE, DMA_FROM_DEVICE);
-
-    // if (dma_mapping_error(chan->device->dev, dst1))
-    // {
-    //     pr_info("dma_map_single error\n");
-    // }
+    int nents = 0;
 
     ///////////////////////
     // DSA_MEMCPY PROCESS
     ///////////////////////
 
-    idxd_desc = idxd_desc_dma_submit_memcpy(chan, dst1, src1, PAGE_SIZE * int_pow(2, PAGE_ORDER), IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
+    if (sgt1->nents > 1 && sgt2->nents > 1)
+    {
+        idxd_desc = idxd_desc_dma_submit_memcpy_sg(chan, sgt2, sgt1, min_t(unsigned int, sgt1->nents, sgt2->nents), IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
+        pr_info("sg1 nents: %d\n", sgt1->nents);
+        pr_info("sg2 nents: %d\n", sgt2->nents);
+    }
+    else
+    {
+        idxd_desc = idxd_desc_dma_submit_memcpy(chan, sg_dma_address(sgt2->sgl), sg_dma_address(sgt1->sgl), min_t(unsigned int, sg_dma_len(sgt1->sgl), sg_dma_len(sgt2->sgl)), IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
+        pr_info("xfer_size: %d\n", idxd_desc->hw->xfer_size);
+    }
+
     if (IS_ERR(idxd_desc))
     {
         dev_dbg(dev, "Failed to allocate descriptor\n");
@@ -309,8 +305,6 @@ static void dsa_copy(void)
     }
 
     hw = idxd_desc->hw;
-
-    pr_info("transfer size: %dByte\n", hw->xfer_size);
 
     pr_info("opcode: 0x%x\nflags: 0x%x\ninit status: 0x%x\n", hw->opcode, hw->flags, idxd_desc->completion->status);
 
@@ -340,20 +334,6 @@ retry:
     if (idxd_desc->completion->status != DSA_COMP_SUCCESS)
     {
         fault++;
-        if (DSA_COMP_STATUS(idxd_desc->completion->status) == DSA_COMP_PAGE_FAULT_NOBOF)
-        {
-            int wr = idxd_desc->completion->status & DSA_COMP_STATUS_WRITE;
-            volatile char *t = (char *)idxd_desc->completion->fault_addr;
-            wr ? *t = *t : *t;
-            hw->src_addr += idxd_desc->completion->bytes_completed;
-            hw->dst_addr += idxd_desc->completion->bytes_completed;
-            hw->xfer_size -= idxd_desc->completion->bytes_completed;
-            goto retry;
-        }
-        else
-        {
-            pr_info("desc failed status: 0x%x\n", idxd_desc->completion->status);
-        }
     }
     else
     {
@@ -364,30 +344,32 @@ done:
     pr_info("after status: 0x%x\nfault info: 0x%x\n", idxd_desc->completion->status, idxd_desc->completion->fault_info);
     pr_info("result: 0x%x\ninvalid flag uint32: 0x%x\n", idxd_desc->completion->result, idxd_desc->completion->invalid_flags);
 
-    idxd_desc_complete(idxd_desc, IDXD_COMPLETE_NORMAL, 0);
+    pr_info("poll: %d\nfault: %d\n", poll, fault);
+
+    // idxd_desc_complete(idxd_desc, IDXD_COMPLETE_NORMAL, 0);
 
     // cmp = memcmp(vmalloc_area, vmalloc_area2, NPAGES * PAGE_SIZE);
     // cmp ? pr_info("copy fail\n") : pr_info("copy success\n");
 
-    cmp = memcmp(page_address(page1), page_address(page2), PAGE_SIZE * int_pow(2, PAGE_ORDER));
+    cmp = memcmp(vmalloc_area, vmalloc_area2, NPAGES * PAGE_SIZE);
     cmp ? pr_info("DSA FAIL\n") : pr_info("DSA Success\n");
     // pr_info("page1: %s\n", page_address(page1));
     // pr_info("page2: %s\n", page_address(page2));
 
     // memmove with CPU
-    pr_info("memmove start\n");
+    // pr_info("memmove start\n");
 
-    ktime_get_ts64(&start4);
-    memcpy(page_address(page4), page_address(page3), PAGE_SIZE * int_pow(2, PAGE_ORDER));
-    ktime_get_ts64(&end4);
+    // ktime_get_ts64(&start4);
+    // memcpy(page_address(page4), page_address(page3), PAGE_SIZE * int_pow(2, PAGE_ORDER));
+    // ktime_get_ts64(&end4);
 
-    cmp = memcmp(page_address(page4), page_address(page3), PAGE_SIZE * int_pow(2, PAGE_ORDER));
-    cmp ? pr_info("memmove copy fail\n") : pr_info("memmove copy success\n");
+    // cmp = memcmp(page_address(page4), page_address(page3), PAGE_SIZE * int_pow(2, PAGE_ORDER));
+    // cmp ? pr_info("memmove copy fail\n") : pr_info("memmove copy success\n");
 
-    pr_info("src1 map time1: %lld\n", timespec64_to_ns(&end) - timespec64_to_ns(&start));
-    pr_info("dest1 map time2: %lld\n", timespec64_to_ns(&end2) - timespec64_to_ns(&start2));
-    pr_info("DSA memmove time3: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&start3));
-    pr_info("memmove time4: %lld\n", timespec64_to_ns(&end4) - timespec64_to_ns(&start4));
+    // pr_info("src1 map time1: %lld\n", timespec64_to_ns(&end) - timespec64_to_ns(&start));
+    // pr_info("dest1 map time2: %lld\n", timespec64_to_ns(&end2) - timespec64_to_ns(&start2));
+    // pr_info("DSA memmove time3: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&start3));
+    // pr_info("memmove time4: %lld\n", timespec64_to_ns(&end4) - timespec64_to_ns(&start4));
 
 out:
     ///////////////////////
@@ -409,12 +391,17 @@ my_init(void)
     {
         return init_result;
     }
+    pr_info("init_region success\n");
     vmalloc_to_sgtable();
+    pr_info("vmalloc_to_sgtable success\n");
     int dsa_result = init_dsa();
     if (dsa_result < 0)
     {
         return dsa_result;
     }
+    pr_info("init_dsa success\n");
+    sgtable_to_dma_map();
+    pr_info("sgtable_to_dma_map success\n");
     dsa_copy();
     return 0;
 }
@@ -426,10 +413,10 @@ static void exit_module(void)
     /* TODO 1/3: clear reservation on pages and free mem.*/
     for (i = 0; i < NPAGES * PAGE_SIZE; i += PAGE_SIZE)
     {
-        ClearPageReserved(virt_to_page(vmalloc_area + i));
-        ClearPageReserved(virt_to_page(vmalloc_area2 + i));
-        ClearPageReserved(virt_to_page(vmalloc_area3 + i));
-        ClearPageReserved(virt_to_page(vmalloc_area4 + i));
+        ClearPageReserved(vmalloc_to_page(vmalloc_area + i));
+        ClearPageReserved(vmalloc_to_page(vmalloc_area2 + i));
+        ClearPageReserved(vmalloc_to_page(vmalloc_area3 + i));
+        ClearPageReserved(vmalloc_to_page(vmalloc_area4 + i));
     }
 
     vfree(vmalloc_area);
