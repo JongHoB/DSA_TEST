@@ -449,6 +449,14 @@ static void dsa_copy(void)
         }
         cpu_relax();
     }
+
+    ktime_get_ts64(&start8);
+    dma_unmap_sgtable(dev, sgt1, DMA_TO_DEVICE, 0);
+    ktime_get_ts64(&end8);
+    ktime_get_ts64(&start9);
+    dma_unmap_sgtable(dev, sgt2, DMA_FROM_DEVICE, 0);
+    ktime_get_ts64(&end9);
+
     ktime_get_ts64(&end3);
 
     if (poll >= POLL_RETRY_MAX || fault >= FAULT_RETRY_MAX)
@@ -497,13 +505,6 @@ out:
 
     // dma_unmap_single(device->dev, src1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
     // dma_unmap_single(device->dev, dst1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
-
-    ktime_get_ts64(&start8);
-    dma_unmap_sgtable(dev, sgt1, DMA_TO_DEVICE, 0);
-    ktime_get_ts64(&end8);
-    ktime_get_ts64(&start9);
-    dma_unmap_sgtable(dev, sgt2, DMA_FROM_DEVICE, 0);
-    ktime_get_ts64(&end9);
 
     pr_info("unmap3 time: %lld\n", timespec64_to_ns(&end8) - timespec64_to_ns(&start8));
     pr_info("unmap4 time: %lld\n", timespec64_to_ns(&end9) - timespec64_to_ns(&start9));
