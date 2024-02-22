@@ -428,7 +428,7 @@ static void dsa_copy(void)
 
     while (poll++ < POLL_RETRY_MAX && poll_entry < nents)
     {
-        list_for_each_entry(desc_entry, &idxd_desc_lists, list)
+        list_for_each_entry_safe(desc_entry, desc_entry_temp, &idxd_desc_lists, list)
         {
             if (desc_entry->completion)
             {
@@ -437,6 +437,9 @@ static void dsa_copy(void)
             if (desc_entry->desc->completion->status == DSA_COMP_SUCCESS)
             {
                 desc_entry->completion = 1;
+                idxd_desc_complete(desc_entry->desc, IDXD_COMPLETE_NORMAL, 0);
+                list_del(&desc_entry->list);
+                kfree(desc_entry);
                 poll_entry++;
             }
             else if (desc_entry->desc->completion->status)
@@ -456,15 +459,6 @@ static void dsa_copy(void)
     ktime_get_ts64(&start9);
     dma_unmap_sgtable(dev, sgt2, DMA_FROM_DEVICE, 0);
     ktime_get_ts64(&end9);
-
-out:
-
-    list_for_each_entry_safe(desc_entry, desc_entry_temp, &idxd_desc_lists, list)
-    {
-        idxd_desc_complete(desc_entry->desc, IDXD_COMPLETE_NORMAL, 0);
-        list_del(&desc_entry->list);
-        kfree(desc_entry);
-    }
 
     ktime_get_ts64(&end3);
 
@@ -507,8 +501,10 @@ out:
     // dma_unmap_single(device->dev, src1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
     // dma_unmap_single(device->dev, dst1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
 
-    pr_info("unmap3 time: %lld\n", timespec64_to_ns(&end8) - timespec64_to_ns(&start8));
-    pr_info("unmap4 time: %lld\n", timespec64_to_ns(&end9) - timespec64_to_ns(&start9));
+    pr_info("unmap src time: %lld\n", timespec64_to_ns(&end8) - timespec64_to_ns(&start8));
+    pr_info("unmap dest time: %lld\n", timespec64_to_ns(&end9) - timespec64_to_ns(&start9));
+
+out:
 
     return;
 }
