@@ -1,7 +1,7 @@
 #include "/usr/src/linux-6.8-rc2/drivers/dma/idxd/idxd.h"
 #include <linux/scatterlist.h>
 
-#define NPAGES (1 << 5)
+#define NPAGES (1 << 10)
 #define PAGE_ORDER 7
 #define DSA_LIST 8
 #define DSA_NUM 2
@@ -27,7 +27,7 @@
 #endif
 
 #define ENQ_RETRY_MAX 1000
-#define POLL_RETRY_MAX 100000
+#define POLL_RETRY_MAX 10000
 #define FAULT_RETRY_MAX 10000
 
 #define for_each_2_sg(sglist1, sglist2, sg1, sg2, len, __i) \
@@ -46,7 +46,15 @@
 #define idxd_dev_to_idxd(idxd_dev) container_of(idxd_dev, struct idxd_device, idxd_dev)
 #define idxd_dev_to_wq(idxd_dev) container_of(idxd_dev, struct idxd_wq, idxd_dev)
 
-struct dma_chan *dma_get_slave_channel(struct dma_chan *chan);
+static struct idxd_desc_list
+{
+	struct list_head list;
+	struct idxd_desc *desc;
+	int completion;
+};
+
+struct dma_chan *
+dma_get_slave_channel(struct dma_chan *chan);
 
 static inline struct idxd_wq *to_idxd_wq(struct dma_chan *c)
 {

@@ -412,6 +412,7 @@ static void dsa_copy(void)
         desc_list->completion = 0;
         list_add_tail(&desc_list->list, &idxd_desc_lists);
     }
+    
     // pr_info("nents: %d\n", nents);
 
     ktime_get_ts64(&start3);
@@ -437,12 +438,12 @@ static void dsa_copy(void)
             if (desc_entry->desc->completion->status == DSA_COMP_SUCCESS)
             {
                 desc_entry->completion = 1;
-                idxd_desc_complete(desc_entry->desc, IDXD_COMPLETE_NORMAL, 0);
+                idxd_desc_complete(desc_entry->desc, IDXD_COMPLETE_NORMAL, 1);
                 list_del(&desc_entry->list);
                 kfree(desc_entry);
                 poll_entry++;
             }
-            else if (desc_entry->desc->completion->status)
+            else if (desc_entry->desc->completion->status > DSA_COMP_SUCCESS)
             {
                 desc_entry->completion = 1;
                 pr_info("after status: 0x%x\nfault info: 0x%x\n", desc_entry->desc->completion->status, desc_entry->desc->completion->fault_info);
@@ -487,6 +488,8 @@ static void dsa_copy(void)
 
     cmp = memcmp(vmalloc_area3, vmalloc_area4, PAGE_SIZE * NPAGES);
     cmp ? pr_info("memmove copy fail\n") : pr_info("memmove copy success\n");
+
+    pr_info("nents: %d\n", nents);
 
     pr_info("src map time1: %lld\n", timespec64_to_ns(&end) - timespec64_to_ns(&start));
     pr_info("dest map time2: %lld\n", timespec64_to_ns(&end5) - timespec64_to_ns(&start5));
