@@ -457,6 +457,15 @@ static void dsa_copy(void)
     dma_unmap_sgtable(dev, sgt2, DMA_FROM_DEVICE, 0);
     ktime_get_ts64(&end9);
 
+out:
+
+    list_for_each_entry_safe(desc_entry, desc_entry_temp, &idxd_desc_lists, list)
+    {
+        idxd_desc_complete(desc_entry->desc, IDXD_COMPLETE_NORMAL, 0);
+        list_del(&desc_entry->list);
+        kfree(desc_entry);
+    }
+
     ktime_get_ts64(&end3);
 
     if (poll >= POLL_RETRY_MAX || fault >= FAULT_RETRY_MAX)
@@ -491,14 +500,6 @@ static void dsa_copy(void)
     pr_info("DSA memmove time3: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&start3));
     pr_info("memmove time4: %lld\n", timespec64_to_ns(&end4) - timespec64_to_ns(&start4));
 
-    list_for_each_entry_safe(desc_entry, desc_entry_temp, &idxd_desc_lists, list)
-    {
-        idxd_desc_complete(desc_entry->desc, IDXD_COMPLETE_NORMAL, 0);
-        list_del(&desc_entry->list);
-        kfree(desc_entry);
-    }
-
-out:
     ///////////////////////
     // kmalloc mapping test
     ///////////////////////
