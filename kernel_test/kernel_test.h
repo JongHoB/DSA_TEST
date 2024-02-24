@@ -2,7 +2,7 @@
 #include <linux/scatterlist.h>
 
 #define NPAGES (1 << 10)
-#define PAGE_ORDER 7
+#define PAGE_ORDER 8
 #define DSA_LIST 8
 #define DSA_NUM 2
 #define WQ_NUM 1
