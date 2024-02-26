@@ -1,7 +1,7 @@
 #include "/usr/src/linux-6.8-rc2/drivers/dma/idxd/idxd.h"
 #include <linux/scatterlist.h>
 
-#define NPAGES (1 << 10)
+#define NPAGES (1 << 14)
 #define PAGE_ORDER 8
 #define DSA_LIST 8
 #define DSA_NUM 2
@@ -27,7 +27,7 @@
 #endif
 
 #define ENQ_RETRY_MAX 1000
-#define POLL_RETRY_MAX 10000
+#define POLL_RETRY_MAX 100000
 #define FAULT_RETRY_MAX 10000
 
 #define for_each_2_sg(sglist1, sglist2, sg1, sg2, len, __i) \
@@ -46,11 +46,29 @@
 #define idxd_dev_to_idxd(idxd_dev) container_of(idxd_dev, struct idxd_device, idxd_dev)
 #define idxd_dev_to_wq(idxd_dev) container_of(idxd_dev, struct idxd_wq, idxd_dev)
 
-static struct idxd_desc_list
+struct batch_info
+{
+	struct dsa_completion_record *sub_compl;
+	struct dsa_hw_desc *sub_hw_descs;
+	dma_addr_t compls_addr;
+	dma_addr_t hw_descs_addr;
+	int batch_compls_size;
+	int batch_hw_descs_size;
+};
+struct idxd_desc_list
 {
 	struct list_head list;
 	struct idxd_desc *desc;
 	int completion;
+
+	struct batch_info *batch_info;
+};
+
+struct batch_task
+{
+	struct scatterlist *next_sg_src;
+	struct scatterlist *next_sg_dst;
+	struct idxd_desc_list *desc_list;
 };
 
 struct dma_chan *
@@ -101,7 +119,7 @@ static inline void idxd_prep_desc_common(struct idxd_wq *wq,
 	hw->completion_addr = compl ;
 }
 
-static struct idxd_desc *
+static inline struct idxd_desc *
 idxd_desc_dma_submit_memcpy(struct dma_chan *c, dma_addr_t dma_dest,
 							dma_addr_t dma_src, size_t len, unsigned long flags)
 {
@@ -130,23 +148,25 @@ idxd_desc_dma_submit_memcpy(struct dma_chan *c, dma_addr_t dma_dest,
 	return desc;
 }
 
-static struct idxd_desc *idxd_desc_dma_submit_memcpy_sg(struct dma_chan *c, struct sg_table *desc, struct sg_table *src, size_t sg_len, unsigned long flags)
+static inline struct batch_task *idxd_desc_dma_submit_memcpy_sg(struct dma_chan *c, struct scatterlist *desc, struct scatterlist *src, int ents, unsigned long flags)
 {
 	struct scatterlist *sg_desc;
 	struct scatterlist *sg_src;
 	int i;
+
 	struct idxd_wq *wq = to_idxd_wq(c);
 	u32 desc_flags;
 	struct idxd_device *idxd = wq->idxd;
 	struct idxd_desc *batch_desc;
-	// struct idxd_desc **sub_descs = (struct idxd_desc **)kmalloc(sg_len * sizeof(struct idxd_desc *), GFP_KERNEL);
-	struct dsa_hw_desc *sub_hw_descs = (struct dsa_hw_desc *)kmalloc(sg_len * sizeof(struct dsa_hw_desc), GFP_KERNEL);
-	struct dsa_completion_record *sub_compl = (struct dsa_completion_record *)kmalloc(sg_len * sizeof(struct dsa_completion_record), GFP_KERNEL);
+
+	struct dsa_completion_record *sub_compl;
+	struct dsa_hw_desc *sub_hw_descs;
+
+	struct batch_task *task = (struct batch_task *)kmalloc(sizeof(struct batch_task), GFP_KERNEL);
+	task->desc_list = (struct idxd_desc_list *)kmalloc(sizeof(struct idxd_desc_list), GFP_KERNEL);
+	task->desc_list->batch_info = (struct batch_info *)kmalloc(sizeof(struct batch_info), GFP_KERNEL);
 
 	if (wq->state != IDXD_WQ_ENABLED)
-		return NULL;
-
-	if (sg_len > idxd->max_batch_size)
 		return NULL;
 
 	op_flag_setup(flags, &desc_flags);
@@ -154,16 +174,23 @@ static struct idxd_desc *idxd_desc_dma_submit_memcpy_sg(struct dma_chan *c, stru
 	if (IS_ERR(batch_desc))
 		return NULL;
 
-	idxd_prep_desc_batch(wq, batch_desc->hw, DSA_OPCODE_BATCH, (uint64_t)&sub_hw_descs[0], sg_len, batch_desc->compl_dma, desc_flags);
+	task->desc_list->batch_info->batch_compls_size = ents * idxd->data->compl_size;
+	task->desc_list->batch_info->batch_hw_descs_size = ents * sizeof(struct dsa_hw_desc);
 
-	pr_info("sg_len: %d\n", sg_len);
+	sub_compl = dma_alloc_coherent(&idxd->pdev->dev, task->desc_list->batch_info->batch_compls_size, &task->desc_list->batch_info->compls_addr, GFP_KERNEL);
+	sub_hw_descs = dma_alloc_coherent(&idxd->pdev->dev, task->desc_list->batch_info->batch_hw_descs_size, &task->desc_list->batch_info->hw_descs_addr, GFP_KERNEL);
+
+	task->desc_list->batch_info->sub_compl = sub_compl;
+	task->desc_list->batch_info->sub_hw_descs = sub_hw_descs;
+
+	idxd_prep_desc_batch(wq, batch_desc->hw, DSA_OPCODE_BATCH, task->desc_list->batch_info->hw_descs_addr, ents, batch_desc->compl_dma, desc_flags);
 
 	batch_desc->txd.flags = flags;
 
-	for_each_2_sgtable_dsa_sg(desc, src, sg_desc, sg_src, sg_len, i)
+	for_each_2_sg(desc, src, sg_desc, sg_src, ents, i)
 	{
-		pr_info("i: %d\n", i);
-		pr_info("tx_size: %d\n", sg_dma_len(sg_desc));
+		// pr_info("i: %d\n", i);
+		// pr_info("tx_size: %d\n", sg_dma_len(sg_desc));
 
 		memset(&sub_hw_descs[i], 0, sizeof(struct dsa_hw_desc));
 		memset(&sub_compl[i], 0, sizeof(struct dsa_completion_record));
@@ -175,7 +202,7 @@ static struct idxd_desc *idxd_desc_dma_submit_memcpy_sg(struct dma_chan *c, stru
 		sub_hw_descs[i].xfer_size = sg_dma_len(sg_desc);
 		sub_hw_descs[i].flags = desc_flags;
 		sub_hw_descs[i].priv = 0;
-		sub_hw_descs[i].completion_addr = (uintptr_t)&sub_compl[i];
+		sub_hw_descs[i].completion_addr = task->desc_list->batch_info->compls_addr + i * idxd->data->compl_size;
 
 		if (device_pasid_enabled(idxd))
 		{
@@ -183,5 +210,10 @@ static struct idxd_desc *idxd_desc_dma_submit_memcpy_sg(struct dma_chan *c, stru
 		}
 	}
 
-	return batch_desc;
+	task->next_sg_src = sg_src;
+	task->next_sg_dst = sg_desc;
+	task->desc_list->desc = batch_desc;
+	task->desc_list->completion = 0;
+
+	return task;
 }

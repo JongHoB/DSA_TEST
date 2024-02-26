@@ -55,7 +55,7 @@ struct sg_table *sgt2;
 struct sg_table *sgt3;
 struct sg_table *sgt4;
 
-struct timespec64 start, end, start2, start3, end3, start4, end4, start5, end5, start6, end6, start7, end7, start8, end8, start9, end9, start10, end10, start11, end11;
+struct timespec64 start, end, start2, start3, end3, start4, end4, start5, end5, start6, end6, start7, end7, start8, end8, start9, end9, start10, end10, start11, end11, start12, end12;
 
 static int init_dsa(void)
 {
@@ -137,7 +137,7 @@ static int init_dsa(void)
     // dma infos
     pr_info("dma device name: %s\n", dma_chan_name(&wq->idxd_chan->chan));
 
-    pr_info("wq flags: 0x%x\n", wq->flags);
+    pr_info("wq flags: 0x%lx\n", wq->flags);
 
     return 0;
 }
@@ -148,7 +148,7 @@ static int init_region(void)
     int ret = 0;
     int i;
 
-    pr_info("transfer size: %d\n", NPAGES * PAGE_SIZE);
+    pr_info("transfer size: %ld\n", NPAGES * PAGE_SIZE);
 
     /* TODO 1/6: allocate NPAGES using kmalloc */
     vmalloc_area = (char *)vmalloc(NPAGES * PAGE_SIZE);
@@ -373,14 +373,10 @@ free_sgt:
 
 static void dsa_copy(void)
 {
-    struct idxd_desc *idxd_desc = NULL;
     struct idxd_desc_list *desc_list, *desc_entry, *desc_entry_temp;
-    struct dsa_hw_desc *hw = NULL;
-    struct dma_device *device = &idxd_device->idxd_dma->dma;
-    dma_addr_t src1, src2, dst1, dst2;
-
     struct scatterlist *sg_src, *sg_dst;
-    int i;
+    struct batch_task *batch_task;
+
     int cmp = 0;
     int poll = 0;
     int poll_entry = 0;
@@ -394,14 +390,23 @@ static void dsa_copy(void)
 
     if (sgt1->nents > 1 && sgt2->nents > 1)
     {
-        nents = sgt1->nents > sgt2->nents ? sgt2->nents : sgt1->nents;
+        int total_nents = sgt1->nents > sgt2->nents ? sgt2->nents : sgt1->nents;
+        nents = total_nents / idxd_device->max_batch_size + 1;
 
-        for_each_2_sgtable_dsa_sg(sgt1, sgt2, sg_src, sg_dst, nents, i)
+        sg_src = sgt1->sgl;
+        sg_dst = sgt2->sgl;
+
+        for (int i = 0; i < nents; i++)
         {
-            desc_list = (struct idxd_desc_list *)kmalloc(sizeof(struct idxd_desc_list), GFP_KERNEL);
-            desc_list->desc = idxd_desc_dma_submit_memcpy(chan, sg_dma_address(sg_dst), sg_dma_address(sg_src), min_t(unsigned int, sg_dma_len(sg_src), sg_dma_len(sg_dst)), IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
-            desc_list->completion = 0;
+            int left_ents = total_nents - i * idxd_device->max_batch_size;
+            int batch_size = left_ents > idxd_device->max_batch_size ? idxd_device->max_batch_size : left_ents;
+            batch_task = idxd_desc_dma_submit_memcpy_sg(chan, sg_dst, sg_src, batch_size, IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
+            sg_src = batch_task->next_sg_src;
+            sg_dst = batch_task->next_sg_dst;
+            desc_list = batch_task->desc_list;
             list_add_tail(&desc_list->list, &idxd_desc_lists);
+
+            kfree(batch_task);
         }
     }
     else
@@ -410,9 +415,10 @@ static void dsa_copy(void)
         desc_list = (struct idxd_desc_list *)kmalloc(sizeof(struct idxd_desc_list), GFP_KERNEL);
         desc_list->desc = idxd_desc_dma_submit_memcpy(chan, sg_dma_address(sgt2->sgl), sg_dma_address(sgt1->sgl), min_t(unsigned int, sg_dma_len(sgt1->sgl), sg_dma_len(sgt2->sgl)), IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
         desc_list->completion = 0;
+
         list_add_tail(&desc_list->list, &idxd_desc_lists);
     }
-    
+
     // pr_info("nents: %d\n", nents);
 
     ktime_get_ts64(&start3);
@@ -438,6 +444,15 @@ static void dsa_copy(void)
             if (desc_entry->desc->completion->status == DSA_COMP_SUCCESS)
             {
                 desc_entry->completion = 1;
+
+                ktime_get_ts64(&start12);
+                if (desc_entry->batch_info)
+                {
+                    dma_free_coherent(dev, desc_entry->batch_info->batch_compls_size, desc_entry->batch_info->sub_compl, desc_entry->batch_info->compls_addr);
+                    dma_free_coherent(dev, desc_entry->batch_info->batch_hw_descs_size, desc_entry->batch_info->sub_hw_descs, desc_entry->batch_info->hw_descs_addr);
+                }
+                ktime_get_ts64(&end12);
+
                 idxd_desc_complete(desc_entry->desc, IDXD_COMPLETE_NORMAL, 1);
                 list_del(&desc_entry->list);
                 kfree(desc_entry);
@@ -493,16 +508,10 @@ static void dsa_copy(void)
 
     pr_info("src map time1: %lld\n", timespec64_to_ns(&end) - timespec64_to_ns(&start));
     pr_info("dest map time2: %lld\n", timespec64_to_ns(&end5) - timespec64_to_ns(&start5));
+    pr_info("dma free time: %lld\n", timespec64_to_ns(&end12) - timespec64_to_ns(&start12));
     pr_info("DSA end to end time: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&start2));
     pr_info("DSA memmove time3: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&start3));
     pr_info("memmove time4: %lld\n", timespec64_to_ns(&end4) - timespec64_to_ns(&start4));
-
-    ///////////////////////
-    // kmalloc mapping test
-    ///////////////////////
-
-    // dma_unmap_single(device->dev, src1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
-    // dma_unmap_single(device->dev, dst1, NPAGES * PAGE_SIZE, DMA_BIDIRECTIONAL);
 
     pr_info("unmap src time: %lld\n", timespec64_to_ns(&end8) - timespec64_to_ns(&start8));
     pr_info("unmap dest time: %lld\n", timespec64_to_ns(&end9) - timespec64_to_ns(&start9));

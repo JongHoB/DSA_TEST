@@ -128,7 +128,7 @@ static int init_dsa(void)
     // dma infos
     pr_info("dma device name: %s\n", dma_chan_name(&wq->idxd_chan->chan));
 
-    pr_info("wq flags: 0x%x\n", wq->flags);
+    pr_info("wq flags: 0x%lx\n", wq->flags);
 
     // set_bit(WQ_FLAG_ATS_DISABLE, &wq->flags);
     // set_bit(WQ_FLAG_PRS_DISABLE, &wq->flags);
@@ -299,12 +299,10 @@ static void dsa_copy(void)
 {
     struct idxd_desc *idxd_desc = NULL;
     struct dsa_hw_desc *hw = NULL;
-    struct dma_device *device = &idxd_device->idxd_dma->dma;
-    dma_addr_t src1, src2, dst1, dst2;
+    dma_addr_t src1, dst1;
     struct timespec64 start, end, start2, end2, start3, end3, start4, end4;
     int cmp = 0;
     int poll = 0;
-    int ret = 0;
     int fault = 0;
 
     ///////////////////////
