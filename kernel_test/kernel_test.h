@@ -1,7 +1,7 @@
 #include "/usr/src/linux-6.8-rc2/drivers/dma/idxd/idxd.h"
 #include <linux/scatterlist.h>
 
-#define NPAGES (1 << 14)
+#define NPAGES (1 << 11)
 #define PAGE_ORDER 8
 #define DSA_LIST 8
 #define DSA_NUM 2
@@ -13,21 +13,8 @@
 #define MAX_ORDER CONFIG_FORCE_MAX_ZONEORDER
 #endif
 
-#ifndef __SO2MMAP_H__
-#define __SO2MMAP_H__ 1
-
-#define PROC_VMALLOC_NAME "my-vmalloc-entry"
-#define PROC_KMALLOC_NAME "my-kmalloc-entry"
-
-#define MMAP_VDEV "/dev/myvmap"
-#define MMAP_KDEV "/dev/mykmap"
-
-#define virt_to_pfn(kaddr) \
-	((unsigned long)(kaddr) >> PAGE_SHIFT)
-#endif
-
 #define ENQ_RETRY_MAX 1000
-#define POLL_RETRY_MAX 100000
+#define POLL_RETRY_MAX 1000000
 #define FAULT_RETRY_MAX 10000
 
 #define for_each_2_sg(sglist1, sglist2, sg1, sg2, len, __i) \
@@ -162,26 +149,31 @@ static inline struct batch_task *idxd_desc_dma_submit_memcpy_sg(struct dma_chan 
 	struct dsa_completion_record *sub_compl;
 	struct dsa_hw_desc *sub_hw_descs;
 
-	struct batch_task *task = (struct batch_task *)kmalloc(sizeof(struct batch_task), GFP_KERNEL);
-	task->desc_list = (struct idxd_desc_list *)kmalloc(sizeof(struct idxd_desc_list), GFP_KERNEL);
-	task->desc_list->batch_info = (struct batch_info *)kmalloc(sizeof(struct batch_info), GFP_KERNEL);
+	struct batch_task *task = (struct batch_task *)kzalloc(sizeof(struct batch_task), GFP_KERNEL);
+	task->desc_list = (struct idxd_desc_list *)kzalloc(sizeof(struct idxd_desc_list), GFP_KERNEL);
+	task->desc_list->batch_info = (struct batch_info *)kzalloc(sizeof(struct batch_info), GFP_KERNEL);
 
 	if (wq->state != IDXD_WQ_ENABLED)
 		return NULL;
-
+	// pr_info("5\n");
 	op_flag_setup(flags, &desc_flags);
 	batch_desc = idxd_alloc_desc(wq, IDXD_OP_BLOCK);
 	if (IS_ERR(batch_desc))
 		return NULL;
-
+	// pr_info("6\n");
 	task->desc_list->batch_info->batch_compls_size = ents * idxd->data->compl_size;
 	task->desc_list->batch_info->batch_hw_descs_size = ents * sizeof(struct dsa_hw_desc);
-
+	// pr_info("7\n");
 	sub_compl = dma_alloc_coherent(&idxd->pdev->dev, task->desc_list->batch_info->batch_compls_size, &task->desc_list->batch_info->compls_addr, GFP_KERNEL);
+	// pr_info("8\n");
 	sub_hw_descs = dma_alloc_coherent(&idxd->pdev->dev, task->desc_list->batch_info->batch_hw_descs_size, &task->desc_list->batch_info->hw_descs_addr, GFP_KERNEL);
+	// pr_info("9\n");
 
 	task->desc_list->batch_info->sub_compl = sub_compl;
 	task->desc_list->batch_info->sub_hw_descs = sub_hw_descs;
+	
+	memset(sub_compl,0,task->desc_list->batch_info->batch_compls_size);
+	memset(sub_hw_descs,0,task->desc_list->batch_info->batch_hw_descs_size);
 
 	idxd_prep_desc_batch(wq, batch_desc->hw, DSA_OPCODE_BATCH, task->desc_list->batch_info->hw_descs_addr, ents, batch_desc->compl_dma, desc_flags);
 
@@ -191,9 +183,6 @@ static inline struct batch_task *idxd_desc_dma_submit_memcpy_sg(struct dma_chan 
 	{
 		// pr_info("i: %d\n", i);
 		// pr_info("tx_size: %d\n", sg_dma_len(sg_desc));
-
-		memset(&sub_hw_descs[i], 0, sizeof(struct dsa_hw_desc));
-		memset(&sub_compl[i], 0, sizeof(struct dsa_completion_record));
 
 		sub_compl[i].status = 0;
 		sub_hw_descs[i].opcode = DSA_OPCODE_MEMMOVE;

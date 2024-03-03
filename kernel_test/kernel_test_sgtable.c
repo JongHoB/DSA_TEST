@@ -1,4 +1,4 @@
-// This code is modified by Jongho Baik and the original code is from Linux Kernel Lab.
+
 #include "/usr/src/linux-6.8-rc2/drivers/dma/idxd/idxd.h"
 #include <linux/version.h>
 #include <linux/init.h>
@@ -158,7 +158,7 @@ static int init_region(void)
     vmalloc_area5 = (char *)vmalloc(NPAGES * PAGE_SIZE);
     vmalloc_area6 = (char *)vmalloc(NPAGES * PAGE_SIZE);
 
-    if (vmalloc_area == NULL || vmalloc_area2 == NULL || vmalloc_area3 == NULL || vmalloc_area4 == NULL)
+    if (vmalloc_area == NULL || vmalloc_area2 == NULL || vmalloc_area3 == NULL || vmalloc_area4 == NULL||vmalloc_area5==NULL || vmalloc_area6==NULL)
     {
         ret = -ENOMEM;
         pr_err("could not allocate memory\n");
@@ -393,7 +393,7 @@ static void dsa_copy(void)
 
         for_each_2_sgtable_dsa_sg(sgt1, sgt2, sg_src, sg_dst, nents, i)
         {
-            desc_list = (struct idxd_desc_list *)kmalloc(sizeof(struct idxd_desc_list), GFP_KERNEL);
+            desc_list = (struct idxd_desc_list *)kzalloc(sizeof(struct idxd_desc_list), GFP_KERNEL);
             desc_list->desc = idxd_desc_dma_submit_memcpy(chan, sg_dma_address(sg_dst), sg_dma_address(sg_src), min_t(unsigned int, sg_dma_len(sg_src), sg_dma_len(sg_dst)), IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
             desc_list->completion = 0;
             list_add_tail(&desc_list->list, &idxd_desc_lists);
@@ -402,7 +402,7 @@ static void dsa_copy(void)
     else
     {
         nents = 1;
-        desc_list = (struct idxd_desc_list *)kmalloc(sizeof(struct idxd_desc_list), GFP_KERNEL);
+        desc_list = (struct idxd_desc_list *)kzalloc(sizeof(struct idxd_desc_list), GFP_KERNEL);
         desc_list->desc = idxd_desc_dma_submit_memcpy(chan, sg_dma_address(sgt2->sgl), sg_dma_address(sgt1->sgl), min_t(unsigned int, sg_dma_len(sgt1->sgl), sg_dma_len(sgt2->sgl)), IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
         desc_list->completion = 0;
         list_add_tail(&desc_list->list, &idxd_desc_lists);

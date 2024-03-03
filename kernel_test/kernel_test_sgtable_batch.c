@@ -1,4 +1,4 @@
-// This code is modified by Jongho Baik and the original code is from Linux Kernel Lab.
+
 #include "/usr/src/linux-6.8-rc2/drivers/dma/idxd/idxd.h"
 #include <linux/version.h>
 #include <linux/init.h>
@@ -235,12 +235,13 @@ static void vmalloc_to_sgtable(void)
     sgt1 = kzalloc(sizeof(*sgt1), GFP_KERNEL);
     sgt2 = kzalloc(sizeof(*sgt2), GFP_KERNEL);
 
+    // pr_info("1\n");
     if (sg_alloc_table(sgt1, NPAGES, GFP_KERNEL) || sg_alloc_table(sgt2, NPAGES, GFP_KERNEL))
     {
         pr_info("sg_alloc_table failed\n");
         goto free_sgt;
     }
-
+    // pr_info("2\n");
     for_each_sgtable_sg(sgt1, sg, i)
     {
         page = vmalloc_to_page(vmalloc_area + i * PAGE_SIZE);
@@ -274,7 +275,7 @@ free_sgt:
 static void sgtable_to_dma_map(void)
 {
     int ret;
-
+    // pr_info("3\n");
     ktime_get_ts64(&start);
     ret = dma_map_sgtable(dev, sgt1, DMA_TO_DEVICE, 0);
     ktime_get_ts64(&end);
@@ -291,6 +292,7 @@ static void sgtable_to_dma_map(void)
         pr_info("dma_map_sgtable failed\n");
         return;
     }
+    // pr_info("4\n");
     // pr_info("sgt2 nents: %d\n sgt2 orig_nents: %d\n", sgt2->nents, sgt2->orig_nents);
     return;
 }
@@ -391,7 +393,8 @@ static void dsa_copy(void)
     if (sgt1->nents > 1 && sgt2->nents > 1)
     {
         int total_nents = sgt1->nents > sgt2->nents ? sgt2->nents : sgt1->nents;
-        nents = total_nents / idxd_device->max_batch_size + 1;
+        nents = total_nents / idxd_device->max_batch_size;
+        nents += total_nents % idxd_device->max_batch_size ? 1 : 0;
 
         sg_src = sgt1->sgl;
         sg_dst = sgt2->sgl;
@@ -412,13 +415,13 @@ static void dsa_copy(void)
     else
     {
         nents = 1;
-        desc_list = (struct idxd_desc_list *)kmalloc(sizeof(struct idxd_desc_list), GFP_KERNEL);
+        desc_list = (struct idxd_desc_list *)kzalloc(sizeof(struct idxd_desc_list), GFP_KERNEL);
         desc_list->desc = idxd_desc_dma_submit_memcpy(chan, sg_dma_address(sgt2->sgl), sg_dma_address(sgt1->sgl), min_t(unsigned int, sg_dma_len(sgt1->sgl), sg_dma_len(sgt2->sgl)), IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
         desc_list->completion = 0;
 
         list_add_tail(&desc_list->list, &idxd_desc_lists);
     }
-
+    // pr_info("10\n");
     // pr_info("nents: %d\n", nents);
 
     ktime_get_ts64(&start3);
