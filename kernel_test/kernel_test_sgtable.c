@@ -158,7 +158,7 @@ static int init_region(void)
     vmalloc_area5 = (char *)vmalloc(NPAGES * PAGE_SIZE);
     vmalloc_area6 = (char *)vmalloc(NPAGES * PAGE_SIZE);
 
-    if (vmalloc_area == NULL || vmalloc_area2 == NULL || vmalloc_area3 == NULL || vmalloc_area4 == NULL||vmalloc_area5==NULL || vmalloc_area6==NULL)
+    if (vmalloc_area == NULL || vmalloc_area2 == NULL || vmalloc_area3 == NULL || vmalloc_area4 == NULL || vmalloc_area5 == NULL || vmalloc_area6 == NULL)
     {
         ret = -ENOMEM;
         pr_err("could not allocate memory\n");
@@ -374,7 +374,7 @@ free_sgt:
 static void dsa_copy(void)
 {
     struct idxd_desc_list *desc_list, *desc_entry, *desc_entry_temp;
-    struct scatterlist *sg_src, *sg_dst;
+    struct scatterlist *sg_src, *sg_dst, *src, *dst;
     int i;
     int cmp = 0;
     int poll = 0;
@@ -382,22 +382,38 @@ static void dsa_copy(void)
     int ret = 0;
     int fault = 0;
     int nents = 0;
-
+    int loop_times = 0;
+    int total_ents = 0;
+    int left_ents = 0;
+    int loop = 0;
     ///////////////////////
     // DSA_MEMCPY PROCESS
     ///////////////////////
 
     if (sgt1->nents > 1 && sgt2->nents > 1)
     {
-        nents = sgt1->nents > sgt2->nents ? sgt2->nents : sgt1->nents;
+        src = sgt1->sgl;
+        dst = sgt2->sgl;
 
-        for_each_2_sgtable_dsa_sg(sgt1, sgt2, sg_src, sg_dst, nents, i)
+        total_ents = sgt1->nents > sgt2->nents ? sgt2->nents : sgt1->nents;
+
+        loop_times = total_ents / wq->num_descs;
+        loop_times += total_ents % wq->num_descs ? 1 : 0;
+
+    next_loop:
+        left_ents = total_ents - loop * wq->num_descs;
+
+        nents = left_ents > wq->num_descs ? wq->num_descs : left_ents;
+
+        for_each_2_sg(dst, src, sg_dst, sg_src, nents, i)
         {
             desc_list = (struct idxd_desc_list *)kzalloc(sizeof(struct idxd_desc_list), GFP_KERNEL);
             desc_list->desc = idxd_desc_dma_submit_memcpy(chan, sg_dma_address(sg_dst), sg_dma_address(sg_src), min_t(unsigned int, sg_dma_len(sg_src), sg_dma_len(sg_dst)), IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
             desc_list->completion = 0;
             list_add_tail(&desc_list->list, &idxd_desc_lists);
         }
+        src = sg_src;
+        dst = sg_dst;
     }
     else
     {
@@ -421,6 +437,9 @@ static void dsa_copy(void)
             goto out;
         }
     }
+
+    poll = 0;
+    poll_entry = 0;
 
     while (poll++ < POLL_RETRY_MAX && poll_entry < nents)
     {
@@ -447,6 +466,13 @@ static void dsa_copy(void)
             }
         }
         cpu_relax();
+    }
+
+    loop++;
+
+    if (loop < loop_times)
+    {
+        goto next_loop;
     }
 
     ktime_get_ts64(&start8);

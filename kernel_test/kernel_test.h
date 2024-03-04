@@ -1,7 +1,7 @@
 #include "/usr/src/linux-6.8-rc2/drivers/dma/idxd/idxd.h"
 #include <linux/scatterlist.h>
 
-#define NPAGES (1 << 11)
+#define NPAGES (1 << 13)
 #define PAGE_ORDER 8
 #define DSA_LIST 8
 #define DSA_NUM 2
@@ -14,7 +14,7 @@
 #endif
 
 #define ENQ_RETRY_MAX 1000
-#define POLL_RETRY_MAX 1000000
+#define POLL_RETRY_MAX 10000
 #define FAULT_RETRY_MAX 10000
 
 #define for_each_2_sg(sglist1, sglist2, sg1, sg2, len, __i) \
@@ -171,9 +171,9 @@ static inline struct batch_task *idxd_desc_dma_submit_memcpy_sg(struct dma_chan 
 
 	task->desc_list->batch_info->sub_compl = sub_compl;
 	task->desc_list->batch_info->sub_hw_descs = sub_hw_descs;
-	
-	memset(sub_compl,0,task->desc_list->batch_info->batch_compls_size);
-	memset(sub_hw_descs,0,task->desc_list->batch_info->batch_hw_descs_size);
+
+	memset(sub_compl, 0, task->desc_list->batch_info->batch_compls_size);
+	memset(sub_hw_descs, 0, task->desc_list->batch_info->batch_hw_descs_size);
 
 	idxd_prep_desc_batch(wq, batch_desc->hw, DSA_OPCODE_BATCH, task->desc_list->batch_info->hw_descs_addr, ents, batch_desc->compl_dma, desc_flags);
 
