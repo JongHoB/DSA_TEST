@@ -57,6 +57,41 @@ struct sg_table *sgt4;
 
 struct timespec64 start, end, start2, start3, end3, start4, end4, start5, end5, start6, end6, start7, end7, start8, end8, start9, end9, start10, end10, start11, end11, start12, end12, start13, end13;
 
+u32 *arr;
+
+static void random_arr(void)
+{
+    arr = kmalloc(sizeof(u32) * NPAGES, GFP_KERNEL);
+
+    for (int i = 0; i < NPAGES; i++)
+    {
+        arr[i] = i;
+    }
+
+    for (int i = 0; i < NPAGES; i++)
+    {
+        u32 tmp = (get_random_u32() >> 1) % NPAGES;
+        u32 tmp2 = arr[i];
+        arr[i] = arr[tmp];
+        arr[tmp] = tmp2;
+    }
+
+    pr_info("src \n");
+    for (int i = 0; i < NPAGES; i++)
+    {
+        unsigned long pfn = vmalloc_to_pfn(vmalloc_area + arr[i] * PAGE_SIZE);
+        pr_info("%lu\n", pfn);
+    }
+    pr_info("dest \n");
+    for (int i = 0; i < NPAGES; i++)
+    {
+        unsigned long pfn = vmalloc_to_pfn(vmalloc_area2 + arr[i] * PAGE_SIZE);
+        pr_info("%lu\n", pfn);
+    }
+
+    return;
+}
+
 static int init_dsa(void)
 {
 
@@ -138,6 +173,8 @@ static int init_dsa(void)
     pr_info("dma device name: %s\n", dma_chan_name(&wq->idxd_chan->chan));
 
     pr_info("wq flags: 0x%lx\n", wq->flags);
+
+    random_arr();
 
     return 0;
 }
@@ -244,7 +281,7 @@ static void vmalloc_to_sgtable(void)
     // pr_info("2\n");
     for_each_sgtable_sg(sgt1, sg, i)
     {
-        page = vmalloc_to_page(vmalloc_area + i * PAGE_SIZE);
+        page = vmalloc_to_page(vmalloc_area + arr[i] * PAGE_SIZE);
         if (!page)
         {
             goto free_sgt;
@@ -254,7 +291,7 @@ static void vmalloc_to_sgtable(void)
     // pr_info("sgt1 nents: %d\n sgt1 orig_nents: %d\n", sgt1->nents, sgt1->orig_nents);
     for_each_sgtable_sg(sgt2, sg, i)
     {
-        page = vmalloc_to_page(vmalloc_area2 + i * PAGE_SIZE);
+        page = vmalloc_to_page(vmalloc_area2 + arr[i] * PAGE_SIZE);
         if (!page)
         {
             goto free_sgt;

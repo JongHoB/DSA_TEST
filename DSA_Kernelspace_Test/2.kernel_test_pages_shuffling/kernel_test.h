@@ -1,7 +1,7 @@
 #include "/usr/src/linux-6.8-rc2/drivers/dma/idxd/idxd.h"
 #include <linux/scatterlist.h>
 
-#define NPAGES (1 << 18)
+#define NPAGES (1 << 8)
 #define PAGE_ORDER 8
 #define DSA_LIST 8
 #define DSA_NUM 2
