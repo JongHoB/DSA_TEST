@@ -55,7 +55,7 @@ struct sg_table *sgt2;
 struct sg_table *sgt3;
 struct sg_table *sgt4;
 
-struct timespec64 start, end, start2, start3, end3, start4, end4, start5, end5, start6, end6, start7, end7, start8, end8, start9, end9, start10, end10, start11, end11, start12, end12;
+struct timespec64 start, end, start2, start3, end3, start4, end4, start5, end5, start6, end6, start7, end7, start8, end8, start9, end9, start10, end10, start11, end11, start12, end12, start13, end13;
 
 static int init_dsa(void)
 {
@@ -389,7 +389,7 @@ static void dsa_copy(void)
     ///////////////////////
     // DSA_MEMCPY PROCESS
     ///////////////////////
-
+    ktime_get_ts64(&start13);
     if (sgt1->nents > 1 && sgt2->nents > 1)
     {
         int total_nents = sgt1->nents > sgt2->nents ? sgt2->nents : sgt1->nents;
@@ -423,7 +423,7 @@ static void dsa_copy(void)
     }
     // pr_info("10\n");
     // pr_info("nents: %d\n", nents);
-
+    ktime_get_ts64(&end13);
     ktime_get_ts64(&start3);
 
     list_for_each_entry(desc_entry, &idxd_desc_lists, list)
@@ -446,17 +446,21 @@ static void dsa_copy(void)
             }
             if (desc_entry->desc->completion->status == DSA_COMP_SUCCESS)
             {
+                desc_entry->desc->txd.cookie = 1;
                 desc_entry->completion = 1;
+
+                idxd_desc_complete(desc_entry->desc, IDXD_COMPLETE_NORMAL, 1);
 
                 ktime_get_ts64(&start12);
                 if (desc_entry->batch_info)
                 {
-                    dma_free_coherent(dev, desc_entry->batch_info->batch_compls_size, desc_entry->batch_info->sub_compl, desc_entry->batch_info->compls_addr);
-                    dma_free_coherent(dev, desc_entry->batch_info->batch_hw_descs_size, desc_entry->batch_info->sub_hw_descs, desc_entry->batch_info->hw_descs_addr);
+                    // dma_free_coherent(dev, desc_entry->batch_info->batch_compls_size, desc_entry->batch_info->sub_compl, desc_entry->batch_info->compls_addr);
+                    // dma_free_coherent(dev, desc_entry->batch_info->batch_hw_descs_size, desc_entry->batch_info->sub_hw_descs, desc_entry->batch_info->hw_descs_addr);
+                    dma_unmap_single(dev, desc_entry->batch_info->compls_addr, desc_entry->batch_info->batch_compls_size, DMA_FROM_DEVICE);
+                    dma_unmap_single(dev, desc_entry->batch_info->hw_descs_addr, desc_entry->batch_info->batch_hw_descs_size, DMA_TO_DEVICE);
                 }
                 ktime_get_ts64(&end12);
 
-                idxd_desc_complete(desc_entry->desc, IDXD_COMPLETE_NORMAL, 1);
                 list_del(&desc_entry->list);
                 kfree(desc_entry);
                 poll_entry++;
@@ -511,6 +515,7 @@ static void dsa_copy(void)
 
     pr_info("src map time1: %lld\n", timespec64_to_ns(&end) - timespec64_to_ns(&start));
     pr_info("dest map time2: %lld\n", timespec64_to_ns(&end5) - timespec64_to_ns(&start5));
+    pr_info("desc allocating time: %lld\n", timespec64_to_ns(&end13) - timespec64_to_ns(&start13));
     pr_info("dma free time: %lld\n", timespec64_to_ns(&end12) - timespec64_to_ns(&start12));
     pr_info("DSA end to end time: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&start2));
     pr_info("DSA memmove time3: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&start3));
