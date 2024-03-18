@@ -55,7 +55,7 @@ struct sg_table *sgt2;
 struct sg_table *sgt3;
 struct sg_table *sgt4;
 
-struct timespec64 start, end, start2, start3, end3, start4, end4, start5, end5, start6, end6, start7, end7, start8, end8, start9, end9, start10, end10, start11, end11, start12, end12;
+struct timespec64 start, end, start2, start3, end3, start4, end4, start5, end5, start6, end6, start7, end7, start8, end8, start9, end9, start10, end10, start11, end11, start12, end12, start13, end13;
 
 static int init_dsa(void)
 {
@@ -485,6 +485,11 @@ static void dsa_copy(void)
     dma_unmap_sgtable(dev, sgt2, DMA_FROM_DEVICE, 0);
     ktime_get_ts64(&end9);
 
+    ktime_get_ts64(&start13);
+    sg_free_table(sgt1);
+    sg_free_table(sgt2);
+    ktime_get_ts64(&end13);
+
     ktime_get_ts64(&end3);
 
     if (poll >= POLL_RETRY_MAX || fault >= FAULT_RETRY_MAX)
@@ -520,7 +525,8 @@ static void dsa_copy(void)
     pr_info("descs alloc time: %d\n", time);
     pr_info("desc alloc time 2: %lld\n", timespec64_to_ns(&end12) - timespec64_to_ns(&start12));
     pr_info("DSA end to end time: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&start2));
-    pr_info("DSA memmove time3: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&start3));
+    pr_info("DSA memmove time3: %lld\n", timespec64_to_ns(&start8) - timespec64_to_ns(&start3));
+    pr_info("sg_table free time: %lld\n", timespec64_to_ns(&end13) - timespec64_to_ns(&start13));
     pr_info("memmove time4: %lld\n", timespec64_to_ns(&end4) - timespec64_to_ns(&start4));
 
     ///////////////////////
@@ -589,8 +595,6 @@ static void exit_module(void)
     vfree(vmalloc_area5);
     vfree(vmalloc_area6);
 
-    sg_free_table(sgt1);
-    sg_free_table(sgt2);
     sg_free_table(sgt3);
     sg_free_table(sgt4);
 }

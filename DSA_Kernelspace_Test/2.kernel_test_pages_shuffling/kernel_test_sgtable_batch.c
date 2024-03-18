@@ -520,6 +520,9 @@ static void dsa_copy(void)
     dma_unmap_sgtable(dev, sgt2, DMA_FROM_DEVICE, 0);
     ktime_get_ts64(&end9);
 
+    sg_free_table(sgt1);
+    sg_free_table(sgt2);
+
     ktime_get_ts64(&end3);
 
     if (poll >= POLL_RETRY_MAX || fault >= FAULT_RETRY_MAX)
@@ -555,7 +558,8 @@ static void dsa_copy(void)
     pr_info("desc allocating time: %lld\n", timespec64_to_ns(&end13) - timespec64_to_ns(&start13));
     pr_info("dma free time: %lld\n", timespec64_to_ns(&end12) - timespec64_to_ns(&start12));
     pr_info("DSA end to end time: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&start2));
-    pr_info("DSA memmove time3: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&start3));
+    pr_info("DSA memmove time3: %lld\n", timespec64_to_ns(&start8) - timespec64_to_ns(&start3));
+    pr_info("sg_table free time: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&end9));
     pr_info("memmove time4: %lld\n", timespec64_to_ns(&end4) - timespec64_to_ns(&start4));
 
     pr_info("unmap src time: %lld\n", timespec64_to_ns(&end8) - timespec64_to_ns(&start8));
@@ -617,8 +621,6 @@ static void exit_module(void)
     vfree(vmalloc_area5);
     vfree(vmalloc_area6);
 
-    sg_free_table(sgt1);
-    sg_free_table(sgt2);
     sg_free_table(sgt3);
     sg_free_table(sgt4);
 }

@@ -1,400 +1,400 @@
-                fault: 0
-[162821.598336] DSA Success
-[162821.598337] memmove start
-[162821.598871] memmove copy success
-[162821.598872] nents: 32
-[162821.598873] src map time1: 8589
-[162821.598874] dest map time2: 8628
-[162821.598874] descs alloc time: 0
-[162821.598875] desc alloc time 2: 7126
-[162821.598876] DSA end to end time: 151259
-[162821.598877] DSA memmove time3: 113726
-[162821.598877] memmove time4: 240489
-[162821.598878] unmap src time: 452
-[162821.598879] unmap dest time: 367
-[162822.951089] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
-[162822.951095] myvmap module unloaded
-[162824.414342] mykmap module loaded
-[162824.414347] transfer size: 2097152
-[162824.416888] init_region success
-[162824.416917] wq is dmaengine
-[162824.416918] wq is kernel and pasid enabled
-[162824.416921] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
-[162824.416924] wq num_descs: 128
-[162824.416925] dma device name: dma9chan0
-[162824.416926] wq flags: 0x3
-[162824.416927] init_dsa success
-[162824.416964] map3 time: 14238
-[162824.416966] map4 time: 10543
-[162824.416969] unmap1 time: 2223
-[162824.416970] unmap2 time: 534
-[162824.417126] desc success
-[162824.417126] poll: 1488
-                fault: 0
-[162824.417647] DSA Success
-[162824.417648] memmove start
-[162824.418216] memmove copy success
-[162824.418217] nents: 32
-[162824.418218] src map time1: 8809
-[162824.418219] dest map time2: 8692
-[162824.418220] descs alloc time: 0
-[162824.418220] desc alloc time 2: 5717
-[162824.418221] DSA end to end time: 154800
-[162824.418222] DSA memmove time3: 120947
-[162824.418223] memmove time4: 257536
-[162824.418223] unmap src time: 446
-[162824.418224] unmap dest time: 344
-[162825.958567] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
-[162825.958573] myvmap module unloaded
-[162827.188007] mykmap module loaded
-[162827.188012] transfer size: 2097152
-[162827.190463] init_region success
-[162827.190491] wq is dmaengine
-[162827.190491] wq is kernel and pasid enabled
-[162827.190495] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
-[162827.190497] wq num_descs: 128
-[162827.190498] dma device name: dma9chan0
-[162827.190499] wq flags: 0x3
-[162827.190500] init_dsa success
-[162827.190537] map3 time: 14126
-[162827.190538] map4 time: 10111
-[162827.190542] unmap1 time: 2273
-[162827.190543] unmap2 time: 565
-[162827.190693] desc success
-[162827.190694] poll: 1455
-                fault: 0
-[162827.191213] DSA Success
-[162827.191215] memmove start
-[162827.191801] memmove copy success
-[162827.191804] nents: 32
-[162827.191805] src map time1: 8731
-[162827.191806] dest map time2: 8522
-[162827.191806] descs alloc time: 0
-[162827.191808] desc alloc time 2: 5604
-[162827.191808] DSA end to end time: 149429
-[162827.191809] DSA memmove time3: 116251
-[162827.191810] memmove time4: 274809
-[162827.191811] unmap src time: 445
-[162827.191812] unmap dest time: 345
-[162828.601444] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
-[162828.601450] myvmap module unloaded
-[162830.001753] mykmap module loaded
-[162830.001757] transfer size: 2097152
-[162830.004843] init_region success
-[162830.004871] wq is dmaengine
-[162830.004871] wq is kernel and pasid enabled
-[162830.004875] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
-[162830.004878] wq num_descs: 128
-[162830.004879] dma device name: dma9chan0
-[162830.004879] wq flags: 0x3
-[162830.004880] init_dsa success
-[162830.004917] map3 time: 14594
-[162830.004918] map4 time: 10303
-[162830.004922] unmap1 time: 2114
-[162830.004923] unmap2 time: 549
-[162830.005078] desc success
-[162830.005079] poll: 1525
-                fault: 0
-[162830.005602] DSA Success
-[162830.005603] memmove start
-[162830.006164] memmove copy success
-[162830.006165] nents: 32
-[162830.006166] src map time1: 8800
-[162830.006167] dest map time2: 8778
-[162830.006168] descs alloc time: 0
-[162830.006168] desc alloc time 2: 5705
-[162830.006169] DSA end to end time: 154586
-[162830.006170] DSA memmove time3: 121120
-[162830.006171] memmove time4: 257817
-[162830.006172] unmap src time: 441
-[162830.006173] unmap dest time: 375
-[162831.312027] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
-[162831.312032] myvmap module unloaded
-[162832.493708] mykmap module loaded
-[162832.493712] transfer size: 2097152
-[162832.496172] init_region success
-[162832.496201] wq is dmaengine
-[162832.496202] wq is kernel and pasid enabled
-[162832.496205] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
-[162832.496208] wq num_descs: 128
-[162832.496209] dma device name: dma9chan0
-[162832.496210] wq flags: 0x3
-[162832.496211] init_dsa success
-[162832.496246] map3 time: 13917
-[162832.496247] map4 time: 9854
-[162832.496251] unmap1 time: 2105
-[162832.496252] unmap2 time: 562
-[162832.496400] desc success
-[162832.496401] poll: 1467
-                fault: 0
-[162832.496923] DSA Success
-[162832.496925] memmove start
-[162832.497485] memmove copy success
-[162832.497489] nents: 32
-[162832.497490] src map time1: 8645
-[162832.497491] dest map time2: 8705
-[162832.497493] descs alloc time: 0
-[162832.497494] desc alloc time 2: 5750
-[162832.497495] DSA end to end time: 147713
-[162832.497497] DSA memmove time3: 114961
-[162832.497498] memmove time4: 257613
-[162832.497499] unmap src time: 457
-[162832.497501] unmap dest time: 347
-[162833.761174] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
-[162833.761180] myvmap module unloaded
-[162835.244130] mykmap module loaded
-[162835.244134] transfer size: 2097152
-[162835.246556] init_region success
-[162835.246583] wq is dmaengine
-[162835.246584] wq is kernel and pasid enabled
-[162835.246587] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
-[162835.246590] wq num_descs: 128
-[162835.246591] dma device name: dma9chan0
-[162835.246592] wq flags: 0x3
-[162835.246593] init_dsa success
-[162835.246629] map3 time: 13896
-[162835.246631] map4 time: 10123
-[162835.246635] unmap1 time: 2560
-[162835.246636] unmap2 time: 500
-[162835.246789] desc success
-[162835.246790] poll: 1451
-                fault: 0
-[162835.247313] DSA Success
-[162835.247313] memmove start
-[162835.247894] memmove copy success
-[162835.247896] nents: 32
-[162835.247897] src map time1: 8740
-[162835.247898] dest map time2: 8650
-[162835.247899] descs alloc time: 0
-[162835.247900] desc alloc time 2: 5506
-[162835.247901] DSA end to end time: 152820
-[162835.247901] DSA memmove time3: 119661
-[162835.247903] memmove time4: 277494
-[162835.247903] unmap src time: 531
-[162835.247904] unmap dest time: 345
-[162836.480277] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
-[162836.480283] myvmap module unloaded
-[162837.700497] mykmap module loaded
-[162837.700501] transfer size: 2097152
-[162837.702923] init_region success
-[162837.702950] wq is dmaengine
-[162837.702951] wq is kernel and pasid enabled
-[162837.702954] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
-[162837.702957] wq num_descs: 128
-[162837.702958] dma device name: dma9chan0
-[162837.702959] wq flags: 0x3
-[162837.702960] init_dsa success
-[162837.702996] map3 time: 14423
-[162837.702998] map4 time: 10154
-[162837.703001] unmap1 time: 2230
-[162837.703002] unmap2 time: 505
-[162837.703149] desc success
-[162837.703150] poll: 1475
-                fault: 0
-[162837.703689] DSA Success
-[162837.703691] memmove start
-[162837.704243] memmove copy success
-[162837.704245] nents: 32
-[162837.704246] src map time1: 8756
-[162837.704246] dest map time2: 8516
-[162837.704258] descs alloc time: 0
-[162837.704259] desc alloc time 2: 5710
-[162837.704259] DSA end to end time: 146709
-[162837.704261] DSA memmove time3: 113782
-[162837.704261] memmove time4: 257260
-[162837.704262] unmap src time: 465
-[162837.704263] unmap dest time: 373
-[162838.957514] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
-[162838.957521] myvmap module unloaded
-[162840.262919] mykmap module loaded
-[162840.262924] transfer size: 2097152
-[162840.265341] init_region success
-[162840.265369] wq is dmaengine
-[162840.265371] wq is kernel and pasid enabled
-[162840.265374] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
-[162840.265377] wq num_descs: 128
-[162840.265378] dma device name: dma9chan0
-[162840.265378] wq flags: 0x3
-[162840.265379] init_dsa success
-[162840.265415] map3 time: 14369
-[162840.265417] map4 time: 10146
-[162840.265420] unmap1 time: 2042
-[162840.265421] unmap2 time: 533
-[162840.265576] desc success
-[162840.265577] poll: 1628
-                fault: 0
-[162840.266096] DSA Success
-[162840.266097] memmove start
-[162840.266658] memmove copy success
-[162840.266659] nents: 32
-[162840.266660] src map time1: 8644
-[162840.266661] dest map time2: 8704
-[162840.266661] descs alloc time: 0
-[162840.266662] desc alloc time 2: 5658
-[162840.266663] DSA end to end time: 154413
-[162840.266664] DSA memmove time3: 121373
-[162840.266665] memmove time4: 257877
-[162840.266666] unmap src time: 471
-[162840.266667] unmap dest time: 352
-[162841.438867] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
-[162841.438873] myvmap module unloaded
-[162842.650392] mykmap module loaded
-[162842.650397] transfer size: 2097152
-[162842.652832] init_region success
-[162842.652860] wq is dmaengine
-[162842.652861] wq is kernel and pasid enabled
-[162842.652864] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
-[162842.652867] wq num_descs: 128
-[162842.652868] dma device name: dma9chan0
-[162842.652869] wq flags: 0x3
-[162842.652870] init_dsa success
-[162842.652908] map3 time: 14616
-[162842.652909] map4 time: 10009
-[162842.652913] unmap1 time: 2027
-[162842.652913] unmap2 time: 546
-[162842.653064] desc success
-[162842.653065] poll: 1520
-                fault: 0
-[162842.653582] DSA Success
-[162842.653583] memmove start
-[162842.654144] memmove copy success
-[162842.654145] nents: 32
-[162842.654146] src map time1: 8726
-[162842.654146] dest map time2: 8565
-[162842.654147] descs alloc time: 0
-[162842.654148] desc alloc time 2: 5466
-[162842.654148] DSA end to end time: 150012
-[162842.654149] DSA memmove time3: 116425
-[162842.654150] memmove time4: 258460
-[162842.654151] unmap src time: 451
-[162842.654151] unmap dest time: 338
-[162843.999289] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
-[162843.999295] myvmap module unloaded
-[162845.380215] mykmap module loaded
-[162845.380220] transfer size: 2097152
-[162845.382623] init_region success
-[162845.382649] wq is dmaengine
-[162845.382650] wq is kernel and pasid enabled
-[162845.382654] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
-[162845.382657] wq num_descs: 128
-[162845.382658] dma device name: dma9chan0
-[162845.382659] wq flags: 0x3
-[162845.382659] init_dsa success
-[162845.382696] map3 time: 14542
-[162845.382697] map4 time: 10046
-[162845.382701] unmap1 time: 2204
-[162845.382702] unmap2 time: 534
-[162845.382858] desc success
-[162845.382859] poll: 1544
-                fault: 0
-[162845.383378] DSA Success
-[162845.383379] memmove start
-[162845.383956] memmove copy success
-[162845.383958] nents: 32
-[162845.383960] src map time1: 8961
-[162845.383963] dest map time2: 8646
-[162845.383964] descs alloc time: 0
-[162845.383964] desc alloc time 2: 5837
-[162845.383965] DSA end to end time: 155209
-[162845.383967] DSA memmove time3: 121482
-[162845.383967] memmove time4: 258939
-[162845.383969] unmap src time: 439
-[162845.383970] unmap dest time: 343
-[162846.665511] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
-[162846.665517] myvmap module unloaded
-[162848.032887] mykmap module loaded
-[162848.032891] transfer size: 2097152
-[162848.035317] init_region success
-[162848.035344] wq is dmaengine
-[162848.035345] wq is kernel and pasid enabled
-[162848.035348] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
-[162848.035351] wq num_descs: 128
-[162848.035352] dma device name: dma9chan0
-[162848.035353] wq flags: 0x3
-[162848.035354] init_dsa success
-[162848.035390] map3 time: 14349
-[162848.035392] map4 time: 10091
-[162848.035396] unmap1 time: 2318
-[162848.035396] unmap2 time: 547
-[162848.035547] desc success
-[162848.035548] poll: 1520
-                fault: 0
-[162848.036084] DSA Success
-[162848.036087] memmove start
-[162848.036649] memmove copy success
-[162848.036650] nents: 32
-[162848.036650] src map time1: 8659
-[162848.036652] dest map time2: 8575
-[162848.036652] descs alloc time: 0
-[162848.036654] desc alloc time 2: 5615
-[162848.036654] DSA end to end time: 149786
-[162848.036655] DSA memmove time3: 117149
-[162848.036656] memmove time4: 258705
-[162848.036656] unmap src time: 466
-[162848.036657] unmap dest time: 375
-[162849.292748] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
-[162849.292754] myvmap module unloaded
-[162850.561773] mykmap module loaded
-[162850.561778] transfer size: 2097152
-[162850.564193] init_region success
-[162850.564220] wq is dmaengine
-[162850.564221] wq is kernel and pasid enabled
-[162850.564224] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
-[162850.564227] wq num_descs: 128
-[162850.564228] dma device name: dma9chan0
-[162850.564229] wq flags: 0x3
-[162850.564229] init_dsa success
-[162850.564265] map3 time: 14318
-[162850.564266] map4 time: 9853
-[162850.564270] unmap1 time: 2335
-[162850.564271] unmap2 time: 522
-[162850.564425] desc success
-[162850.564426] poll: 1547
-                fault: 0
-[162850.564942] DSA Success
-[162850.564943] memmove start
-[162850.565480] memmove copy success
-[162850.565481] nents: 32
-[162850.565482] src map time1: 8810
-[162850.565483] dest map time2: 8647
-[162850.565484] descs alloc time: 0
-[162850.565484] desc alloc time 2: 6775
-[162850.565485] DSA end to end time: 153372
-[162850.565486] DSA memmove time3: 119264
-[162850.565487] memmove time4: 241205
-[162850.565488] unmap src time: 475
-[162850.565489] unmap dest time: 343
-[162851.978545] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
-[162851.978551] myvmap module unloaded
-[162854.614990] mykmap module loaded
-[162854.614994] transfer size: 2097152
-[162854.617535] init_region success
-[162854.617562] wq is dmaengine
-[162854.617564] wq is kernel and pasid enabled
-[162854.617567] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
-[162854.617570] wq num_descs: 128
-[162854.617571] dma device name: dma9chan0
-[162854.617572] wq flags: 0x3
-[162854.617572] init_dsa success
-[162854.617609] map3 time: 14506
-[162854.617611] map4 time: 10668
-[162854.617614] unmap1 time: 2181
-[162854.617615] unmap2 time: 540
-[162854.617767] desc success
-[162854.617768] poll: 1463
-                fault: 0
-[162854.618287] DSA Success
-[162854.618288] memmove start
-[162854.618856] memmove copy success
-[162854.618857] nents: 32
-[162854.618858] src map time1: 8643
-[162854.618859] dest map time2: 8629
-[162854.618860] descs alloc time: 0
-[162854.618861] desc alloc time 2: 6007
-[162854.618862] DSA end to end time: 150994
-[162854.618863] DSA memmove time3: 118052
-[162854.618863] memmove time4: 257522
-[162854.618864] unmap src time: 453
-[162854.618865] unmap dest time: 377
-[162856.167497] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
-[162856.167504] myvmap module unloaded
+fault: 0
+DSA Success
+memmove start
+memmove copy success
+nents: 32
+src map time1: 8589
+dest map time2: 8628
+descs alloc time: 0
+desc alloc time 2: 7126
+DSA end to end time: 151259
+DSA memmove time3: 113726
+memmove time4: 240489
+unmap src time: 452
+unmap dest time: 367
+idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+myvmap module unloaded
+mykmap module loaded
+transfer size: 2097152
+init_region success
+wq is dmaengine
+wq is kernel and pasid enabled
+idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+wq num_descs: 128
+dma device name: dma9chan0
+wq flags: 0x3
+init_dsa success
+map3 time: 14238
+map4 time: 10543
+unmap1 time: 2223
+unmap2 time: 534
+desc success
+poll: 1488
+fault: 0
+DSA Success
+memmove start
+memmove copy success
+nents: 32
+src map time1: 8809
+dest map time2: 8692
+descs alloc time: 0
+desc alloc time 2: 5717
+DSA end to end time: 154800
+DSA memmove time3: 120947
+memmove time4: 257536
+unmap src time: 446
+unmap dest time: 344
+idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+myvmap module unloaded
+mykmap module loaded
+transfer size: 2097152
+init_region success
+wq is dmaengine
+wq is kernel and pasid enabled
+idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+wq num_descs: 128
+dma device name: dma9chan0
+wq flags: 0x3
+init_dsa success
+map3 time: 14126
+map4 time: 10111
+unmap1 time: 2273
+unmap2 time: 565
+desc success
+poll: 1455
+fault: 0
+DSA Success
+memmove start
+memmove copy success
+nents: 32
+src map time1: 8731
+dest map time2: 8522
+descs alloc time: 0
+desc alloc time 2: 5604
+DSA end to end time: 149429
+DSA memmove time3: 116251
+memmove time4: 274809
+unmap src time: 445
+unmap dest time: 345
+idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+myvmap module unloaded
+mykmap module loaded
+transfer size: 2097152
+init_region success
+wq is dmaengine
+wq is kernel and pasid enabled
+idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+wq num_descs: 128
+dma device name: dma9chan0
+wq flags: 0x3
+init_dsa success
+map3 time: 14594
+map4 time: 10303
+unmap1 time: 2114
+unmap2 time: 549
+desc success
+poll: 1525
+fault: 0
+DSA Success
+memmove start
+memmove copy success
+nents: 32
+src map time1: 8800
+dest map time2: 8778
+descs alloc time: 0
+desc alloc time 2: 5705
+DSA end to end time: 154586
+DSA memmove time3: 121120
+memmove time4: 257817
+unmap src time: 441
+unmap dest time: 375
+idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+myvmap module unloaded
+mykmap module loaded
+transfer size: 2097152
+init_region success
+wq is dmaengine
+wq is kernel and pasid enabled
+idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+wq num_descs: 128
+dma device name: dma9chan0
+wq flags: 0x3
+init_dsa success
+map3 time: 13917
+map4 time: 9854
+unmap1 time: 2105
+unmap2 time: 562
+desc success
+poll: 1467
+fault: 0
+DSA Success
+memmove start
+memmove copy success
+nents: 32
+src map time1: 8645
+dest map time2: 8705
+descs alloc time: 0
+desc alloc time 2: 5750
+DSA end to end time: 147713
+DSA memmove time3: 114961
+memmove time4: 257613
+unmap src time: 457
+unmap dest time: 347
+idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+myvmap module unloaded
+mykmap module loaded
+transfer size: 2097152
+init_region success
+wq is dmaengine
+wq is kernel and pasid enabled
+idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+wq num_descs: 128
+dma device name: dma9chan0
+wq flags: 0x3
+init_dsa success
+map3 time: 13896
+map4 time: 10123
+unmap1 time: 2560
+unmap2 time: 500
+desc success
+poll: 1451
+fault: 0
+DSA Success
+memmove start
+memmove copy success
+nents: 32
+src map time1: 8740
+dest map time2: 8650
+descs alloc time: 0
+desc alloc time 2: 5506
+DSA end to end time: 152820
+DSA memmove time3: 119661
+memmove time4: 277494
+unmap src time: 531
+unmap dest time: 345
+idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+myvmap module unloaded
+mykmap module loaded
+transfer size: 2097152
+init_region success
+wq is dmaengine
+wq is kernel and pasid enabled
+idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+wq num_descs: 128
+dma device name: dma9chan0
+wq flags: 0x3
+init_dsa success
+map3 time: 14423
+map4 time: 10154
+unmap1 time: 2230
+unmap2 time: 505
+desc success
+poll: 1475
+fault: 0
+DSA Success
+memmove start
+memmove copy success
+nents: 32
+src map time1: 8756
+dest map time2: 8516
+descs alloc time: 0
+desc alloc time 2: 5710
+DSA end to end time: 146709
+DSA memmove time3: 113782
+memmove time4: 257260
+unmap src time: 465
+unmap dest time: 373
+idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+myvmap module unloaded
+mykmap module loaded
+transfer size: 2097152
+init_region success
+wq is dmaengine
+wq is kernel and pasid enabled
+idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+wq num_descs: 128
+dma device name: dma9chan0
+wq flags: 0x3
+init_dsa success
+map3 time: 14369
+map4 time: 10146
+unmap1 time: 2042
+unmap2 time: 533
+desc success
+poll: 1628
+fault: 0
+DSA Success
+memmove start
+memmove copy success
+nents: 32
+src map time1: 8644
+dest map time2: 8704
+descs alloc time: 0
+desc alloc time 2: 5658
+DSA end to end time: 154413
+DSA memmove time3: 121373
+memmove time4: 257877
+unmap src time: 471
+unmap dest time: 352
+idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+myvmap module unloaded
+mykmap module loaded
+transfer size: 2097152
+init_region success
+wq is dmaengine
+wq is kernel and pasid enabled
+idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+wq num_descs: 128
+dma device name: dma9chan0
+wq flags: 0x3
+init_dsa success
+map3 time: 14616
+map4 time: 10009
+unmap1 time: 2027
+unmap2 time: 546
+desc success
+poll: 1520
+fault: 0
+DSA Success
+memmove start
+memmove copy success
+nents: 32
+src map time1: 8726
+dest map time2: 8565
+descs alloc time: 0
+desc alloc time 2: 5466
+DSA end to end time: 150012
+DSA memmove time3: 116425
+memmove time4: 258460
+unmap src time: 451
+unmap dest time: 338
+idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+myvmap module unloaded
+mykmap module loaded
+transfer size: 2097152
+init_region success
+wq is dmaengine
+wq is kernel and pasid enabled
+idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+wq num_descs: 128
+dma device name: dma9chan0
+wq flags: 0x3
+init_dsa success
+map3 time: 14542
+map4 time: 10046
+unmap1 time: 2204
+unmap2 time: 534
+desc success
+poll: 1544
+fault: 0
+DSA Success
+memmove start
+memmove copy success
+nents: 32
+src map time1: 8961
+dest map time2: 8646
+descs alloc time: 0
+desc alloc time 2: 5837
+DSA end to end time: 155209
+DSA memmove time3: 121482
+memmove time4: 258939
+unmap src time: 439
+unmap dest time: 343
+idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+myvmap module unloaded
+mykmap module loaded
+transfer size: 2097152
+init_region success
+wq is dmaengine
+wq is kernel and pasid enabled
+idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+wq num_descs: 128
+dma device name: dma9chan0
+wq flags: 0x3
+init_dsa success
+map3 time: 14349
+map4 time: 10091
+unmap1 time: 2318
+unmap2 time: 547
+desc success
+poll: 1520
+fault: 0
+DSA Success
+memmove start
+memmove copy success
+nents: 32
+src map time1: 8659
+dest map time2: 8575
+descs alloc time: 0
+desc alloc time 2: 5615
+DSA end to end time: 149786
+DSA memmove time3: 117149
+memmove time4: 258705
+unmap src time: 466
+unmap dest time: 375
+idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+myvmap module unloaded
+mykmap module loaded
+transfer size: 2097152
+init_region success
+wq is dmaengine
+wq is kernel and pasid enabled
+idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+wq num_descs: 128
+dma device name: dma9chan0
+wq flags: 0x3
+init_dsa success
+map3 time: 14318
+map4 time: 9853
+unmap1 time: 2335
+unmap2 time: 522
+desc success
+poll: 1547
+fault: 0
+DSA Success
+memmove start
+memmove copy success
+nents: 32
+src map time1: 8810
+dest map time2: 8647
+descs alloc time: 0
+desc alloc time 2: 6775
+DSA end to end time: 153372
+DSA memmove time3: 119264
+memmove time4: 241205
+unmap src time: 475
+unmap dest time: 343
+idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+myvmap module unloaded
+mykmap module loaded
+transfer size: 2097152
+init_region success
+wq is dmaengine
+wq is kernel and pasid enabled
+idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+wq num_descs: 128
+dma device name: dma9chan0
+wq flags: 0x3
+init_dsa success
+map3 time: 14506
+map4 time: 10668
+unmap1 time: 2181
+unmap2 time: 540
+desc success
+poll: 1463
+fault: 0
+DSA Success
+memmove start
+memmove copy success
+nents: 32
+src map time1: 8643
+dest map time2: 8629
+descs alloc time: 0
+desc alloc time 2: 6007
+DSA end to end time: 150994
+DSA memmove time3: 118052
+memmove time4: 257522
+unmap src time: 453
+unmap dest time: 377
+idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+myvmap module unloaded
