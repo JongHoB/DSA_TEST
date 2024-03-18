@@ -133,7 +133,7 @@ static int init_dsa(void)
                 {
                     struct enabled_idxd_wqs *enabled_wq = (struct enabled_idxd_wqs *)kmalloc(sizeof(struct enabled_idxd_wqs), GFP_KERNEL);
                     enabled_wq->enabled_wq_num = enabled_wqs++;
-                    enabled_wq->dev = &pci_dev->dev;
+                    // enabled_wq->dev = &pci_dev->dev;
                     enabled_wq->wq = idxd_device->wqs[i];
                     // enabled_wq->chan = dma_get_slave_channel(&idxd_device->wqs[i]->idxd_chan->chan);
                     dma_get_slave_channel(&idxd_device->wqs[i]->idxd_chan->chan);
@@ -326,14 +326,14 @@ static void sgtable_to_dma_map(void)
     {
         pr_info("enabled_wq_num: %d\n", enabled_wq->enabled_wq_num);
         // ktime_get_ts64(&start);
-        ret = dma_map_sgtable(enabled_wq->dev, src_sgts[enabled_wq->enabled_wq_num], DMA_TO_DEVICE, 0);
+        ret = dma_map_sgtable(wq_to_dev(enabled_wq->wq), src_sgts[enabled_wq->enabled_wq_num], DMA_TO_DEVICE, 0);
         if (ret)
         {
             pr_info("dma_map_sgtable failed\n");
             return;
         }
         // ktime_get_ts64(&end);
-        ret = dma_map_sgtable(enabled_wq->dev, dst_sgts[enabled_wq->enabled_wq_num], DMA_FROM_DEVICE, 0);
+        ret = dma_map_sgtable(wq_to_dev(enabled_wq->wq), dst_sgts[enabled_wq->enabled_wq_num], DMA_FROM_DEVICE, 0);
         if (ret)
         {
             pr_info("dma_map_sgtable failed\n");
@@ -487,8 +487,8 @@ static void dsa_copy(void)
 
     list_for_each_entry(enabled_wq, &idxd_wqs, list)
     {
-        dma_unmap_sgtable(enabled_wq->dev, src_sgts[enabled_wq->enabled_wq_num], DMA_TO_DEVICE, 0);
-        dma_unmap_sgtable(enabled_wq->dev, dst_sgts[enabled_wq->enabled_wq_num], DMA_FROM_DEVICE, 0);
+        dma_unmap_sgtable(wq_to_dev(enabled_wq->wq), src_sgts[enabled_wq->enabled_wq_num], DMA_TO_DEVICE, 0);
+        dma_unmap_sgtable(wq_to_dev(enabled_wq->wq), dst_sgts[enabled_wq->enabled_wq_num], DMA_FROM_DEVICE, 0);
 
         sg_free_table(src_sgts[enabled_wq->enabled_wq_num]);
         sg_free_table(dst_sgts[enabled_wq->enabled_wq_num]);

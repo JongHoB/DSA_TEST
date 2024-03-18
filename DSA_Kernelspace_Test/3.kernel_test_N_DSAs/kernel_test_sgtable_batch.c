@@ -133,7 +133,7 @@ static int init_dsa(void)
                 {
                     struct enabled_idxd_wqs *enabled_wq = (struct enabled_idxd_wqs *)kmalloc(sizeof(struct enabled_idxd_wqs), GFP_KERNEL);
                     enabled_wq->enabled_wq_num = enabled_wqs++;
-                    enabled_wq->dev = &pci_dev->dev;
+                    // enabled_wq->dev = &pci_dev->dev;
                     enabled_wq->wq = idxd_device->wqs[i];
                     // enabled_wq->chan = dma_get_slave_channel(&idxd_device->wqs[i]->idxd_chan->chan);
                     dma_get_slave_channel(&idxd_device->wqs[i]->idxd_chan->chan);
@@ -326,14 +326,14 @@ static void sgtable_to_dma_map(void)
     {
         pr_info("enabled_wq_num: %d\n", enabled_wq->enabled_wq_num);
         // ktime_get_ts64(&start);
-        ret = dma_map_sgtable(enabled_wq->dev, src_sgts[enabled_wq->enabled_wq_num], DMA_TO_DEVICE, 0);
+        ret = dma_map_sgtable(wq_to_dev(enabled_wq->wq), src_sgts[enabled_wq->enabled_wq_num], DMA_TO_DEVICE, 0);
         if (ret)
         {
             pr_info("dma_map_sgtable failed\n");
             return;
         }
         // ktime_get_ts64(&end);
-        ret = dma_map_sgtable(enabled_wq->dev, dst_sgts[enabled_wq->enabled_wq_num], DMA_FROM_DEVICE, 0);
+        ret = dma_map_sgtable(wq_to_dev(enabled_wq->wq), dst_sgts[enabled_wq->enabled_wq_num], DMA_FROM_DEVICE, 0);
         if (ret)
         {
             pr_info("dma_map_sgtable failed\n");
@@ -373,9 +373,20 @@ static int dsa_desc_complete(void *arg)
                 }
                 if (desc_entry->desc->completion->status == DSA_COMP_SUCCESS)
                 {
-                    idxd_desc_complete(desc_entry->desc, IDXD_COMPLETE_NORMAL, 1);
+                    desc_entry->desc->txd.cookie = 1; // mark as completed
                     desc_entry->completion = 1;
+                    idxd_desc_complete(desc_entry->desc, IDXD_COMPLETE_NORMAL, 1);
                     poll_entry++;
+
+                    if (desc_entry->batch_info)
+                    {
+                        dma_unmap_single(wq_to_dev(desc_entry->desc->wq), desc_entry->batch_info->compls_addr, desc_entry->batch_info->batch_compls_size, DMA_FROM_DEVICE);
+                        dma_unmap_single(wq_to_dev(desc_entry->desc->wq), desc_entry->batch_info->hw_descs_addr, desc_entry->batch_info->batch_hw_descs_size, DMA_TO_DEVICE);
+
+                        kfree(desc_entry->batch_info->sub_compl);
+                        kfree(desc_entry->batch_info->sub_hw_descs);
+                        kfree(desc_entry->batch_info);
+                    }
 
                     if (!thread_execution)
                     {
@@ -391,6 +402,16 @@ static int dsa_desc_complete(void *arg)
                     pr_info("after status: 0x%x\nfault info: 0x%x\n", desc_entry->desc->completion->status, desc_entry->desc->completion->fault_info);
                     pr_info("result: 0x%x\ninvalid flag uint32: 0x%x\n", desc_entry->desc->completion->result, desc_entry->desc->completion->invalid_flags);
                     poll_entry++;
+
+                    if (desc_entry->batch_info)
+                    {
+                        dma_unmap_single(wq_to_dev(desc_entry->desc->wq), desc_entry->batch_info->compls_addr, desc_entry->batch_info->batch_compls_size, DMA_FROM_DEVICE);
+                        dma_unmap_single(wq_to_dev(desc_entry->desc->wq), desc_entry->batch_info->hw_descs_addr, desc_entry->batch_info->batch_hw_descs_size, DMA_TO_DEVICE);
+
+                        kfree(desc_entry->batch_info->sub_compl);
+                        kfree(desc_entry->batch_info->sub_hw_descs);
+                        kfree(desc_entry->batch_info);
+                    }
 
                     if (!thread_execution)
                     {
@@ -420,6 +441,8 @@ static void dsa_copy(void)
     ///////////////////////
     // DSA_MEMCPY PROCESS
     ///////////////////////
+    struct idxd_desc_list *desc_list;
+    struct batch_task *batch_task;
     struct enabled_idxd_wqs *enabled_wq;
     int cmp = 0;
     int cur_ent = 0;
@@ -451,13 +474,23 @@ static void dsa_copy(void)
             if (cur_ent < descs_entries[enabled_wq->enabled_wq_num])
             {
                 int total_nents = (src_sgts[enabled_wq->enabled_wq_num]->nents) > (dst_sgts[enabled_wq->enabled_wq_num]->nents) ? (dst_sgts[enabled_wq->enabled_wq_num]->nents) : (src_sgts[enabled_wq->enabled_wq_num]->nents);
-                int left_ents = total_nents - cur_ent * enabled_wq->wq->idxd->max_batch_size;
-                int batch_size = left_ents > enabled_wq->wq->idxd->max_batch_size ? enabled_wq->wq->idxd->max_batch_size : left_ents;
 
-                struct batch_task *batch_task = idxd_desc_dma_submit_memcpy_sg(&enabled_wq->wq->idxd_chan->chan, sg_dsts[enabled_wq->enabled_wq_num], sg_srcs[enabled_wq->enabled_wq_num], batch_size, IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
-                sg_dsts[enabled_wq->enabled_wq_num] = batch_task->next_sg_dst;
-                sg_srcs[enabled_wq->enabled_wq_num] = batch_task->next_sg_src;
-                struct idxd_desc_list *desc_list = batch_task->desc_list;
+                if (total_nents == 1)
+                {
+                    desc_list = (struct idxd_desc_list *)kzalloc(sizeof(struct idxd_desc_list), GFP_KERNEL);
+                    desc_list->desc = idxd_desc_dma_submit_memcpy(&enabled_wq->wq->idxd_chan->chan, sg_dma_address(sg_dsts[enabled_wq->enabled_wq_num]), sg_dma_address(sg_srcs[enabled_wq->enabled_wq_num]), min_t(unsigned int, sg_dma_len(sg_srcs[enabled_wq->enabled_wq_num]), sg_dma_len(sg_dsts[enabled_wq->enabled_wq_num])), IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
+                    desc_list->completion = 0;
+                }
+                else
+                {
+                    int left_ents = total_nents - cur_ent * enabled_wq->wq->idxd->max_batch_size;
+                    int batch_size = left_ents > enabled_wq->wq->idxd->max_batch_size ? enabled_wq->wq->idxd->max_batch_size : left_ents;
+
+                    batch_task = idxd_desc_dma_submit_memcpy_sg(&enabled_wq->wq->idxd_chan->chan, sg_dsts[enabled_wq->enabled_wq_num], sg_srcs[enabled_wq->enabled_wq_num], batch_size, IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
+                    sg_dsts[enabled_wq->enabled_wq_num] = batch_task->next_sg_dst;
+                    sg_srcs[enabled_wq->enabled_wq_num] = batch_task->next_sg_src;
+                    desc_list = batch_task->desc_list;
+                }
 
                 list_add_tail(&desc_list->list, &idxd_desc_lists);
 
@@ -474,7 +507,8 @@ static void dsa_copy(void)
                     pr_info("wake up called\n");
                 }
 
-                kfree(batch_task);
+                if (batch_task)
+                    kfree(batch_task);
             }
         }
         cur_ent++;
@@ -498,8 +532,8 @@ static void dsa_copy(void)
 
     list_for_each_entry(enabled_wq, &idxd_wqs, list)
     {
-        dma_unmap_sgtable(enabled_wq->dev, src_sgts[enabled_wq->enabled_wq_num], DMA_TO_DEVICE, 0);
-        dma_unmap_sgtable(enabled_wq->dev, dst_sgts[enabled_wq->enabled_wq_num], DMA_FROM_DEVICE, 0);
+        dma_unmap_sgtable(wq_to_dev(enabled_wq->wq), src_sgts[enabled_wq->enabled_wq_num], DMA_TO_DEVICE, 0);
+        dma_unmap_sgtable(wq_to_dev(enabled_wq->wq), dst_sgts[enabled_wq->enabled_wq_num], DMA_FROM_DEVICE, 0);
 
         sg_free_table(src_sgts[enabled_wq->enabled_wq_num]);
         sg_free_table(dst_sgts[enabled_wq->enabled_wq_num]);

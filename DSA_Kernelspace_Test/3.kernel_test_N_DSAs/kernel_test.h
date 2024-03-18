@@ -33,10 +33,12 @@
 #define idxd_dev_to_idxd(idxd_dev) container_of(idxd_dev, struct idxd_device, idxd_dev)
 #define idxd_dev_to_wq(idxd_dev) container_of(idxd_dev, struct idxd_wq, idxd_dev)
 
+#define wq_to_dev(wq) &wq->idxd->pdev->dev
+
 struct enabled_idxd_wqs
 {
 	struct list_head list;
-	struct device *dev;
+	// struct device *dev;
 	struct idxd_wq *wq;
 	// struct dma_chan *chan;
 	int enabled_wq_num;
