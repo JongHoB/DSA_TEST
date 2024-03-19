@@ -46,6 +46,7 @@ static struct task_struct *dsa_desc_complete_thread;
 static int enabled_wqs = 0;
 static int total_entries = 0;
 static bool thread_execution = false;
+static bool thread_wakeup = false;
 
 struct idxd_device *idxd_device;
 struct device *dev;
@@ -63,7 +64,7 @@ struct sg_table **dst_sgts;
 
 static int completion_status = 0;
 
-struct timespec64 start, end, start2, start3, end3, start4, end4, start5, end5, start6, end6, start7, end7, start8, end8, start9, end9, start10, end10, start11, end11, start12, end12;
+struct timespec64 a, b, c, d, e, f, g;
 
 u32 *arr;
 
@@ -300,9 +301,9 @@ static void vmalloc_to_sgtable(void)
 
         sg_mark_end(prev_sg);
     }
-    pr_info("idx: %d\n", idx);
-    pr_info("src nents: %d origin: %d \n", src_sgts[0]->nents, src_sgts[0]->orig_nents);
-    pr_info("dst nents: %d origin: %d \n", dst_sgts[0]->nents, dst_sgts[0]->orig_nents);
+    // pr_info("idx: %d\n", idx);
+    // pr_info("src nents: %d origin: %d \n", src_sgts[0]->nents, src_sgts[0]->orig_nents);
+    // pr_info("dst nents: %d origin: %d \n", dst_sgts[0]->nents, dst_sgts[0]->orig_nents);
 
     return;
 
@@ -324,7 +325,7 @@ static void sgtable_to_dma_map(void)
     // ktime_get_ts64(&start);
     list_for_each_entry(enabled_wq, &idxd_wqs, list)
     {
-        pr_info("enabled_wq_num: %d\n", enabled_wq->enabled_wq_num);
+        // pr_info("enabled_wq_num: %d\n", enabled_wq->enabled_wq_num);
         // ktime_get_ts64(&start);
         ret = dma_map_sgtable(wq_to_dev(enabled_wq->wq), src_sgts[enabled_wq->enabled_wq_num], DMA_TO_DEVICE, 0);
         if (ret)
@@ -349,7 +350,9 @@ static int dsa_desc_complete(void *arg)
 {
     pr_info("dsa_desc_complete_thread started\n");
     wait_event_interruptible(desc_wait, thread_execution);
-    pr_info("dsa_desc_complete_thread woken up\n");
+    thread_wakeup = true;
+    // pr_info("dsa_desc_complete_thread woken up\n");
+
     struct idxd_desc_list *desc_entry, *desc_entry_temp;
     int poll_entry = 0;
     bool completion_error = false;
@@ -366,6 +369,7 @@ static int dsa_desc_complete(void *arg)
                 {
                     if (!thread_execution)
                     {
+                        // pr_info("1\n");
                         list_del(&desc_entry->list);
                         kfree(desc_entry);
                     }
@@ -373,13 +377,14 @@ static int dsa_desc_complete(void *arg)
                 }
                 if (desc_entry->desc->completion->status == DSA_COMP_SUCCESS)
                 {
-                    desc_entry->desc->txd.cookie = 1; // mark as completed
+                    desc_entry->desc->txd.cookie = 1;
                     desc_entry->completion = 1;
                     idxd_desc_complete(desc_entry->desc, IDXD_COMPLETE_NORMAL, 1);
                     poll_entry++;
 
                     if (desc_entry->batch_info)
                     {
+                        // pr_info("3\n");
                         dma_unmap_single(wq_to_dev(desc_entry->desc->wq), desc_entry->batch_info->compls_addr, desc_entry->batch_info->batch_compls_size, DMA_FROM_DEVICE);
                         dma_unmap_single(wq_to_dev(desc_entry->desc->wq), desc_entry->batch_info->hw_descs_addr, desc_entry->batch_info->batch_hw_descs_size, DMA_TO_DEVICE);
 
@@ -390,6 +395,7 @@ static int dsa_desc_complete(void *arg)
 
                     if (!thread_execution)
                     {
+                        // pr_info("4\n");
                         list_del(&desc_entry->list);
                         kfree(desc_entry);
                     }
@@ -425,9 +431,9 @@ static int dsa_desc_complete(void *arg)
         if (!thread_execution && list_empty(&idxd_desc_lists))
         {
             completion_status = completion_error ? 2 : 1;
-            pr_info("thread_execution is false\n");
+            // pr_info("thread_execution is false\n");
             wait_event_interruptible(desc_wait, thread_execution);
-            pr_info("thread_execution is true\n");
+            // pr_info("thread_execution is true\n");
         }
         cpu_relax();
     }
@@ -442,7 +448,7 @@ static void dsa_copy(void)
     // DSA_MEMCPY PROCESS
     ///////////////////////
     struct idxd_desc_list *desc_list;
-    struct batch_task *batch_task;
+    struct batch_task *batch_task=NULL;
     struct enabled_idxd_wqs *enabled_wq;
     int cmp = 0;
     int cur_ent = 0;
@@ -465,7 +471,7 @@ static void dsa_copy(void)
         max_ents = max_t(int, max_ents, nents);
     }
     total_entries = max_ents * enabled_wqs;
-    pr_info("total_entries: %d\n", total_entries);
+    // pr_info("total_entries: %d\n", total_entries);
 
     while (cur_ent < max_ents)
     {
@@ -474,6 +480,8 @@ static void dsa_copy(void)
             if (cur_ent < descs_entries[enabled_wq->enabled_wq_num])
             {
                 int total_nents = (src_sgts[enabled_wq->enabled_wq_num]->nents) > (dst_sgts[enabled_wq->enabled_wq_num]->nents) ? (dst_sgts[enabled_wq->enabled_wq_num]->nents) : (src_sgts[enabled_wq->enabled_wq_num]->nents);
+
+                // pr_info("total_nents: %d\n", total_nents);
 
                 if (total_nents == 1)
                 {
@@ -503,22 +511,29 @@ static void dsa_copy(void)
                 if (!thread_execution)
                 {
                     thread_execution = true;
-                    wake_up_interruptible(&desc_wait);
+                    wake_up(&desc_wait);
                     pr_info("wake up called\n");
                 }
 
                 if (batch_task)
+                {
                     kfree(batch_task);
+                }
             }
         }
         cur_ent++;
         // pr_info("cur_ent: %d\n", cur_ent++);
     }
     ///////
-    pr_info("descs submitted\n");
+    // pr_info("descs submitted\n");
+
+    while (!thread_wakeup)
+    {
+        cpu_relax();
+    }
 
     thread_execution = false;
-    pr_info("thread sleep\n");
+    // pr_info("thread sleep\n");
 
     while (!completion_status)
     {
@@ -535,11 +550,14 @@ static void dsa_copy(void)
         dma_unmap_sgtable(wq_to_dev(enabled_wq->wq), src_sgts[enabled_wq->enabled_wq_num], DMA_TO_DEVICE, 0);
         dma_unmap_sgtable(wq_to_dev(enabled_wq->wq), dst_sgts[enabled_wq->enabled_wq_num], DMA_FROM_DEVICE, 0);
 
+        ktime_get_ts64(&e);
         sg_free_table(src_sgts[enabled_wq->enabled_wq_num]);
+        ktime_get_ts64(&f);
         sg_free_table(dst_sgts[enabled_wq->enabled_wq_num]);
+        ktime_get_ts64(&g);
     }
 
-    ktime_get_ts64(&end3);
+    ktime_get_ts64(&b);
 
     pr_info("desc success\n");
 
@@ -549,12 +567,12 @@ static void dsa_copy(void)
     // memmove with CPU
     pr_info("memmove start\n");
 
-    ktime_get_ts64(&start4);
+    ktime_get_ts64(&c);
     for (int i = 0; i < NPAGES * PAGE_SIZE; i += PAGE_SIZE)
     {
         memmove(page_address(vmalloc_to_page(vmalloc_area4 + i)), page_address(vmalloc_to_page(vmalloc_area3 + i)), PAGE_SIZE);
     }
-    ktime_get_ts64(&end4);
+    ktime_get_ts64(&d);
 
     cmp = memcmp(vmalloc_area3, vmalloc_area4, PAGE_SIZE * NPAGES);
     cmp ? pr_info("memmove copy fail\n") : pr_info("memmove copy success\n");
@@ -567,6 +585,11 @@ static void dsa_copy(void)
     // pr_info("DSA memmove time3: %lld\n", timespec64_to_ns(&start8) - timespec64_to_ns(&start3));
     // pr_info("sg_table free time: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&end9));
     // pr_info("memmove time4: %lld\n", timespec64_to_ns(&end4) - timespec64_to_ns(&start4));
+
+    pr_info("sg_table free time: %lld\n", timespec64_to_ns(&f) - timespec64_to_ns(&e));
+    pr_info("sg_table free time2: %lld\n", timespec64_to_ns(&g) - timespec64_to_ns(&f));
+    pr_info("End to End: %lld\n", timespec64_to_ns(&b) - timespec64_to_ns(&a));
+    pr_info("memmove time4: %lld\n", timespec64_to_ns(&d) - timespec64_to_ns(&c));
 
     // pr_info("unmap src time: %lld\n", timespec64_to_ns(&end8) - timespec64_to_ns(&start8));
     // pr_info("unmap dest time: %lld\n", timespec64_to_ns(&end9) - timespec64_to_ns(&start9));
@@ -598,11 +621,11 @@ my_init(void)
         return dsa_result;
     }
     pr_info("init_dsa success\n");
-    ktime_get_ts64(&start2);
+    ktime_get_ts64(&a);
     vmalloc_to_sgtable();
-    pr_info("vmalloc_to_sgtable success\n");
+    // pr_info("vmalloc_to_sgtable success\n");
     sgtable_to_dma_map();
-    pr_info("sgtable_to_dma_map success\n");
+    // pr_info("sgtable_to_dma_map success\n");
     dsa_copy();
     // pr_info("dsa_copy success\n");
 
