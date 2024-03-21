@@ -1,0 +1,500 @@
+[  825.669134] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  825.669136] dma name: dma8chan0
+[  825.669172] src 
+[  825.669174] 17 2011849 2011848
+[  825.669191] dest 
+[  825.669207] enabled wqs: 2
+[  825.669386] desc success
+[  825.669891] DSA Success
+[  825.669892] memmove start
+[  825.670410] memmove copy success
+[  825.670412] sg_table          free time: 154
+[  825.670413] sg_table         free time2: 155
+[  825.670413] End                  to End: 177978
+[  825.670414] memmove               time4: 244547
+[  825.670415] before create          time: 98616
+[  825.670415] nents calc             time: 86
+[  825.670416] desc create +   submit time: 52816
+[  825.670417] desc            create time: 389
+[  825.670417] after submit -complete time: 16321
+[  825.670418] unmap+            free time: 10225
+[  826.787587] dsa_desc_complete_thread stopped
+[  826.787602] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  826.787608] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  828.434791] transfer size: 2097152
+[  828.434796] dsa_desc_complete_thread started
+[  828.437300] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  828.437305] dma name: dma9chan0
+[  828.437324] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  828.437326] dma name: dma8chan0
+[  828.437358] src 
+[  828.437375] dest 
+[  828.437391] enabled wqs: 2
+[  828.437567] desc success
+[  828.438073] DSA Success
+[  828.438074] memmove start
+[  828.438592] memmove copy success
+[  828.438593] sg_table          free time: 241
+[  828.438594] sg_table         free time2: 487
+[  828.438595] End                  to End: 174843
+[  828.438596] memmove               time4: 243957
+[  828.438597] before create          time: 93404
+[  828.438597] nents calc             time: 86
+[  828.438598] desc create +   submit time: 33081
+[  828.438598] desc            create time: 638
+[  828.438599] after submit -complete time: 36474
+[  828.438600] unmap+            free time: 11884
+[  829.397582] dsa_desc_complete_thread stopped
+[  829.397598] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  829.397604] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  830.532121] transfer size: 2097152
+[  830.532125] dsa_desc_complete_thread started
+[  830.534647] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  830.534651] dma name: dma9chan0
+[  830.534670] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  830.534672] dma name: dma8chan0
+[  830.534704] src 
+[  830.534721] dest 
+[  830.534737] enabled wqs: 2
+[  830.534917] desc success
+[  830.535419] DSA Success
+[  830.535421] memmove start
+[  830.535944] memmove copy success
+[  830.535945] sg_table          free time: 133
+[  830.535947] sg_table         free time2: 137
+[  830.535947] End                  to End: 178561
+[  830.535948] memmove               time4: 247383
+[  830.535949] before create          time: 92162
+[  830.535949] nents calc             time: 44
+[  830.535950] desc create +   submit time: 33816
+[  830.535950] desc            create time: 781
+[  830.535951] after submit -complete time: 42710
+[  830.535952] unmap+            free time: 9873
+[  831.961400] dsa_desc_complete_thread stopped
+[  831.961415] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  831.961421] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  833.121207] transfer size: 2097152
+[  833.121208] dsa_desc_complete_thread started
+[  833.123672] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  833.123677] dma name: dma9chan0
+[  833.123696] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  833.123697] dma name: dma8chan0
+[  833.123729] src 
+[  833.123746] dest 
+[  833.123762] enabled wqs: 2
+[  833.123943] desc success
+[  833.124448] DSA Success
+[  833.124449] memmove start
+[  833.124970] memmove copy success
+[  833.124971] sg_table          free time: 138
+[  833.124972] sg_table         free time2: 486
+[  833.124973] End                  to End: 179156
+[  833.124974] memmove               time4: 243945
+[  833.124974] before create          time: 98230
+[  833.124975] nents calc             time: 61
+[  833.124976] desc create +   submit time: 36701
+[  833.124982] desc            create time: 625
+[  833.124982] after submit -complete time: 33629
+[  833.124983] unmap+            free time: 10596
+[  834.143131] dsa_desc_complete_thread stopped
+[  834.143146] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  834.143153] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  835.183947] transfer size: 2097152
+[  835.183951] dsa_desc_complete_thread started
+[  835.186806] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  835.186810] dma name: dma9chan0
+[  835.186828] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  835.186830] dma name: dma8chan0
+[  835.186862] src 
+[  835.186865] 38 2067377 2067376
+[  835.186881] dest 
+[  835.186897] enabled wqs: 2
+[  835.187079] desc success
+[  835.187582] DSA Success
+[  835.187584] memmove start
+[  835.188104] memmove copy success
+[  835.188105] sg_table          free time: 235
+[  835.188107] sg_table         free time2: 131
+[  835.188107] End                  to End: 181228
+[  835.188108] memmove               time4: 245195
+[  835.188109] before create          time: 93293
+[  835.188109] nents calc             time: 86
+[  835.188110] desc create +   submit time: 33900
+[  835.188111] desc            create time: 889
+[  835.188111] after submit -complete time: 43691
+[  835.188112] unmap+            free time: 10344
+[  836.230261] dsa_desc_complete_thread stopped
+[  836.230277] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  836.230284] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  837.313916] transfer size: 2097152
+[  837.313921] dsa_desc_complete_thread started
+[  837.316409] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  837.316413] dma name: dma9chan0
+[  837.316431] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  837.316432] dma name: dma8chan0
+[  837.316464] src 
+[  837.316477] 395 1087405 1087404
+[  837.316482] dest 
+[  837.316499] enabled wqs: 2
+[  837.316673] desc success
+[  837.317194] DSA Success
+[  837.317196] memmove start
+[  837.317714] memmove copy success
+[  837.317716] sg_table          free time: 213
+[  837.317717] sg_table         free time2: 134
+[  837.317717] End                  to End: 173755
+[  837.317718] memmove               time4: 243126
+[  837.317719] before create          time: 94952
+[  837.317719] nents calc             time: 86
+[  837.317720] desc create +   submit time: 40909
+[  837.317721] desc            create time: 1101
+[  837.317721] after submit -complete time: 28233
+[  837.317722] unmap+            free time: 9661
+[  838.374651] dsa_desc_complete_thread stopped
+[  838.374668] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  838.374675] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  840.223286] transfer size: 2097152
+[  840.223290] dsa_desc_complete_thread started
+[  840.226160] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  840.226165] dma name: dma9chan0
+[  840.226183] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  840.226185] dma name: dma8chan0
+[  840.226217] src 
+[  840.226234] dest 
+[  840.226250] enabled wqs: 2
+[  840.226428] desc success
+[  840.226951] DSA Success
+[  840.226953] memmove start
+[  840.227500] memmove copy success
+[  840.227501] sg_table          free time: 135
+[  840.227502] sg_table         free time2: 139
+[  840.227503] End                  to End: 176093
+[  840.227504] memmove               time4: 256350
+[  840.227504] before create          time: 93350
+[  840.227505] nents calc             time: 86
+[  840.227506] desc create +   submit time: 40051
+[  840.227506] desc            create time: 657
+[  840.227507] after submit -complete time: 31572
+[  840.227507] unmap+            free time: 11120
+[  841.650616] dsa_desc_complete_thread stopped
+[  841.650631] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  841.650637] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  843.048175] transfer size: 2097152
+[  843.048180] dsa_desc_complete_thread started
+[  843.050971] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  843.050976] dma name: dma9chan0
+[  843.050994] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  843.050996] dma name: dma8chan0
+[  843.051027] src 
+[  843.051044] dest 
+[  843.051061] enabled wqs: 2
+[  843.051230] desc success
+[  843.051733] DSA Success
+[  843.051734] memmove start
+[  843.052251] memmove copy success
+[  843.052252] sg_table          free time: 175
+[  843.052254] sg_table         free time2: 293
+[  843.052254] End                  to End: 168641
+[  843.052255] memmove               time4: 242536
+[  843.052256] before create          time: 93787
+[  843.052256] nents calc             time: 63
+[  843.052257] desc create +   submit time: 35082
+[  843.052258] desc            create time: 767
+[  843.052258] after submit -complete time: 29197
+[  843.052259] unmap+            free time: 10575
+[  844.394706] dsa_desc_complete_thread stopped
+[  844.394719] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  844.394726] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  845.557599] transfer size: 2097152
+[  845.557603] dsa_desc_complete_thread started
+[  845.561696] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  845.561700] dma name: dma9chan0
+[  845.561719] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  845.561720] dma name: dma8chan0
+[  845.561752] src 
+[  845.561761] 224 1244700 1244699
+[  845.561772] dest 
+[  845.561788] enabled wqs: 2
+[  845.561966] desc success
+[  845.562469] DSA Success
+[  845.562470] memmove start
+[  845.562990] memmove copy success
+[  845.562991] sg_table          free time: 131
+[  845.562993] sg_table         free time2: 133
+[  845.562993] End                  to End: 177159
+[  845.562994] memmove               time4: 244860
+[  845.562994] before create          time: 97752
+[  845.562996] nents calc             time: 87
+[  845.562996] desc create +   submit time: 42780
+[  845.562997] desc            create time: 1225
+[  845.562997] after submit -complete time: 26127
+[  845.562998] unmap+            free time: 10500
+[  846.813317] dsa_desc_complete_thread stopped
+[  846.813332] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  846.813338] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  847.939604] transfer size: 2097152
+[  847.939606] dsa_desc_complete_thread started
+[  847.944678] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  847.944683] dma name: dma9chan0
+[  847.944727] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  847.944728] dma name: dma8chan0
+[  847.944778] src 
+[  847.944795] dest 
+[  847.944812] enabled wqs: 2
+[  847.945021] desc success
+[  847.945530] DSA Success
+[  847.945532] memmove start
+[  847.946061] memmove copy success
+[  847.946062] sg_table          free time: 137
+[  847.946063] sg_table         free time2: 132
+[  847.946064] End                  to End: 208327
+[  847.946064] memmove               time4: 253387
+[  847.946065] before create          time: 119599
+[  847.946066] nents calc             time: 68
+[  847.946066] desc create +   submit time: 27228
+[  847.946067] desc            create time: 419
+[  847.946068] after submit -complete time: 49309
+[  847.946068] unmap+            free time: 12191
+[  849.033314] dsa_desc_complete_thread stopped
+[  849.033330] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  849.033337] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  850.676322] transfer size: 2097152
+[  850.676326] dsa_desc_complete_thread started
+[  850.678952] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  850.678957] dma name: dma9chan0
+[  850.678992] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  850.678993] dma name: dma8chan0
+[  850.679034] src 
+[  850.679036] 21 1241397 1241396
+[  850.679048] 338 1567064 1567063
+[  850.679054] dest 
+[  850.679070] enabled wqs: 2
+[  850.679261] desc success
+[  850.679762] DSA Success
+[  850.679763] memmove start
+[  850.680283] memmove copy success
+[  850.680284] sg_table          free time: 132
+[  850.680286] sg_table         free time2: 411
+[  850.680287] End                  to End: 189604
+[  850.680287] memmove               time4: 245397
+[  850.680288] before create          time: 95110
+[  850.680289] nents calc             time: 86
+[  850.680289] desc create +   submit time: 37949
+[  850.680290] desc            create time: 803
+[  850.680290] after submit -complete time: 45309
+[  850.680291] unmap+            free time: 11236
+[  852.055889] dsa_desc_complete_thread stopped
+[  852.055904] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  852.055910] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  853.362376] transfer size: 2097152
+[  853.362381] dsa_desc_complete_thread started
+[  853.365173] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  853.365177] dma name: dma9chan0
+[  853.365199] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  853.365200] dma name: dma8chan0
+[  853.365236] src 
+[  853.365247] 297 1109033 1109032
+[  853.365250] 330 1114155 1114154
+[  853.365256] dest 
+[  853.365273] enabled wqs: 2
+[  853.365471] desc success
+[  853.365972] DSA Success
+[  853.365973] memmove start
+[  853.366496] memmove copy success
+[  853.366497] sg_table          free time: 138
+[  853.366498] sg_table         free time2: 364
+[  853.366499] End                  to End: 197742
+[  853.366499] memmove               time4: 247211
+[  853.366500] before create          time: 99621
+[  853.366501] nents calc             time: 87
+[  853.366501] desc create +   submit time: 30026
+[  853.366502] desc            create time: 424
+[  853.366502] after submit -complete time: 57763
+[  853.366503] unmap+            free time: 10332
+[  854.538238] dsa_desc_complete_thread stopped
+[  854.538251] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  854.538258] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  855.659721] transfer size: 2097152
+[  855.659725] dsa_desc_complete_thread started
+[  855.663329] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  855.663334] dma name: dma9chan0
+[  855.663354] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  855.663355] dma name: dma8chan0
+[  855.663388] src 
+[  855.663404] dest 
+[  855.663421] enabled wqs: 2
+[  855.663617] desc success
+[  855.664110] DSA Success
+[  855.664111] memmove start
+[  855.664610] memmove copy success
+[  855.664611] sg_table          free time: 146
+[  855.664612] sg_table         free time2: 414
+[  855.664613] End                  to End: 195254
+[  855.664613] memmove               time4: 230141
+[  855.664614] before create          time: 96900
+[  855.664615] nents calc             time: 87
+[  855.664615] desc create +   submit time: 32801
+[  855.664616] desc            create time: 616
+[  855.664616] after submit -complete time: 55620
+[  855.664617] unmap+            free time: 9933
+[  856.703058] dsa_desc_complete_thread stopped
+[  856.703074] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  856.703080] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  857.804345] transfer size: 2097152
+[  857.804350] dsa_desc_complete_thread started
+[  857.808999] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  857.809003] dma name: dma9chan0
+[  857.809024] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  857.809026] dma name: dma8chan0
+[  857.809059] src 
+[  857.809076] dest 
+[  857.809093] enabled wqs: 2
+[  857.809292] desc success
+[  857.809818] DSA Success
+[  857.809819] memmove start
+[  857.810389] memmove copy success
+[  857.810391] sg_table          free time: 136
+[  857.810392] sg_table         free time2: 139
+[  857.810393] End                  to End: 197817
+[  857.810394] memmove               time4: 269942
+[  857.810394] before create          time: 98182
+[  857.810395] nents calc             time: 62
+[  857.810396] desc create +   submit time: 45892
+[  857.810396] desc            create time: 637
+[  857.810397] after submit -complete time: 43348
+[  857.810398] unmap+            free time: 10395
+[  859.237407] dsa_desc_complete_thread stopped
+[  859.237422] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  859.237428] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  860.536488] transfer size: 2097152
+[  860.536490] dsa_desc_complete_thread started
+[  860.540575] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  860.540579] dma name: dma9chan0
+[  860.540619] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  860.540620] dma name: dma8chan0
+[  860.540681] src 
+[  860.540701] 489 67590235 67590234
+[  860.540703] dest 
+[  860.540720] enabled wqs: 2
+[  860.540922] desc success
+[  860.541437] DSA Success
+[  860.541438] memmove start
+[  860.541962] memmove copy success
+[  860.541963] sg_table          free time: 302
+[  860.541964] sg_table         free time2: 311
+[  860.541965] End                  to End: 200882
+[  860.541966] memmove               time4: 244148
+[  860.541966] before create          time: 107128
+[  860.541967] nents calc             time: 61
+[  860.541968] desc create +   submit time: 28864
+[  860.541968] desc            create time: 586
+[  860.541969] after submit -complete time: 52922
+[  860.541970] unmap+            free time: 11968
+[  861.834857] dsa_desc_complete_thread stopped
+[  861.834871] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  861.834877] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  862.990927] transfer size: 2097152
+[  862.990931] dsa_desc_complete_thread started
+[  862.994074] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  862.994078] dma name: dma9chan0
+[  862.994117] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  862.994118] dma name: dma8chan0
+[  862.994162] src 
+[  862.994179] dest 
+[  862.994195] enabled wqs: 2
+[  862.994396] desc success
+[  862.994896] DSA Success
+[  862.994898] memmove start
+[  862.995411] memmove copy success
+[  862.995411] sg_table          free time: 140
+[  862.995413] sg_table         free time2: 138
+[  862.995413] End                  to End: 199507
+[  862.995414] memmove               time4: 234852
+[  862.995415] before create          time: 95455
+[  862.995415] nents calc             time: 62
+[  862.995416] desc create +   submit time: 41148
+[  862.995417] desc            create time: 471
+[  862.995417] after submit -complete time: 51694
+[  862.995418] unmap+            free time: 11210
+[  864.595529] dsa_desc_complete_thread stopped
+[  864.595543] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  864.595549] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  866.224515] transfer size: 2097152
+[  866.224519] dsa_desc_complete_thread started
+[  866.227458] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  866.227463] dma name: dma9chan0
+[  866.227488] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  866.227489] dma name: dma8chan0
+[  866.227528] src 
+[  866.227545] dest 
+[  866.227561] enabled wqs: 2
+[  866.227753] desc success
+[  866.228255] DSA Success
+[  866.228256] memmove start
+[  866.228783] memmove copy success
+[  866.228786] sg_table          free time: 131
+[  866.228787] sg_table         free time2: 135
+[  866.228788] End                  to End: 191347
+[  866.228788] memmove               time4: 242115
+[  866.228789] before create          time: 93928
+[  866.228790] nents calc             time: 69
+[  866.228791] desc create +   submit time: 38215
+[  866.228791] desc            create time: 940
+[  866.228792] after submit -complete time: 49080
+[  866.228792] unmap+            free time: 10124
+[  867.453038] dsa_desc_complete_thread stopped
+[  867.453052] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  867.453058] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  869.534008] transfer size: 2097152
+[  869.534014] dsa_desc_complete_thread started
+[  869.537702] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  869.537707] dma name: dma9chan0
+[  869.537726] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  869.537728] dma name: dma8chan0
+[  869.537764] src 
+[  869.537774] 251 1921714 1921713
+[  869.537783] dest 
+[  869.537799] enabled wqs: 2
+[  869.537998] desc success
+[  869.538499] DSA Success
+[  869.538500] memmove start
+[  869.539032] memmove copy success
+[  869.539033] sg_table          free time: 133
+[  869.539034] sg_table         free time2: 409
+[  869.539035] End                  to End: 197658
+[  869.539036] memmove               time4: 255091
+[  869.539036] before create          time: 94158
+[  869.539037] nents calc             time: 61
+[  869.539038] desc create +   submit time: 48318
+[  869.539039] desc            create time: 1205
+[  869.539039] after submit -complete time: 45085
+[  869.539040] unmap+            free time: 10097
+[  870.676933] dsa_desc_complete_thread stopped
+[  870.676949] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  870.676956] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  871.927140] transfer size: 2097152
+[  871.927144] dsa_desc_complete_thread started
+[  871.929653] idxd 0000:74:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  871.929657] dma name: dma9chan0
+[  871.929676] idxd 0000:f1:01.0: idxd_dma_alloc_chan_resources: client_count: 1
+[  871.929678] dma name: dma8chan0
+[  871.929710] src 
+[  871.929727] dest 
+[  871.929743] enabled wqs: 2
+[  871.929933] desc success
+[  871.930436] DSA Success
+[  871.930437] memmove start
+[  871.930946] memmove copy success
+[  871.930947] sg_table          free time: 133
+[  871.930949] sg_table         free time2: 132
+[  871.930949] End                  to End: 188316
+[  871.930950] memmove               time4: 233910
+[  871.930951] before create          time: 92396
+[  871.930951] nents calc             time: 62
+[  871.930952] desc create +   submit time: 39142
+[  871.930952] desc            create time: 974
+[  871.930953] after submit -complete time: 46820
+[  871.930954] unmap+            free time: 9958
+[  873.118025] dsa_desc_complete_thread stopped
+[  873.118040] idxd 0000:74:01.0: idxd_dma_free_chan_resources: client_count: 0
+[  873.118047] idxd 0000:f1:01.0: idxd_dma_free_chan_resources: client_count: 0

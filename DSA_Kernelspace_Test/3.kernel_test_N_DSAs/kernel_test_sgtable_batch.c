@@ -64,7 +64,7 @@ struct sg_table **dst_sgts;
 
 static int completion_status = 0;
 
-struct timespec64 a, b, c, d, e, f, g;
+struct timespec64 a, b, c, d, e, f, g, h, i, j, k, l, m, n;
 
 u32 *arr;
 
@@ -432,6 +432,7 @@ static int dsa_desc_complete(void *arg)
         {
             completion_status = completion_error ? 2 : 1;
             // pr_info("thread_execution is false\n");
+            thread_wakeup = false;
             wait_event_interruptible(desc_wait, thread_execution);
             // pr_info("thread_execution is true\n");
         }
@@ -448,7 +449,7 @@ static void dsa_copy(void)
     // DSA_MEMCPY PROCESS
     ///////////////////////
     struct idxd_desc_list *desc_list;
-    struct batch_task *batch_task=NULL;
+    struct batch_task *batch_task = NULL;
     struct enabled_idxd_wqs *enabled_wq;
     int cmp = 0;
     int cur_ent = 0;
@@ -456,6 +457,8 @@ static void dsa_copy(void)
     struct scatterlist **sg_srcs = kzalloc(sizeof(struct scatterlist *) * enabled_wqs, GFP_KERNEL);
     struct scatterlist **sg_dsts = kzalloc(sizeof(struct scatterlist *) * enabled_wqs, GFP_KERNEL);
     int *descs_entries = kzalloc(sizeof(int) * enabled_wqs, GFP_KERNEL);
+
+    ktime_get_ts64(&m);
 
     list_for_each_entry(enabled_wq, &idxd_wqs, list)
     {
@@ -472,7 +475,7 @@ static void dsa_copy(void)
     }
     total_entries = max_ents * enabled_wqs;
     // pr_info("total_entries: %d\n", total_entries);
-
+    ktime_get_ts64(&h);
     while (cur_ent < max_ents)
     {
         list_for_each_entry(enabled_wq, &idxd_wqs, list)
@@ -493,8 +496,9 @@ static void dsa_copy(void)
                 {
                     int left_ents = total_nents - cur_ent * enabled_wq->wq->idxd->max_batch_size;
                     int batch_size = left_ents > enabled_wq->wq->idxd->max_batch_size ? enabled_wq->wq->idxd->max_batch_size : left_ents;
-
+                    ktime_get_ts64(&k);
                     batch_task = idxd_desc_dma_submit_memcpy_sg(&enabled_wq->wq->idxd_chan->chan, sg_dsts[enabled_wq->enabled_wq_num], sg_srcs[enabled_wq->enabled_wq_num], batch_size, IDXD_OP_FLAG_RCR | IDXD_OP_FLAG_CRAV | IDXD_OP_FLAG_CC | IDXD_OP_FLAG_BOF);
+                    ktime_get_ts64(&l);
                     sg_dsts[enabled_wq->enabled_wq_num] = batch_task->next_sg_dst;
                     sg_srcs[enabled_wq->enabled_wq_num] = batch_task->next_sg_src;
                     desc_list = batch_task->desc_list;
@@ -526,7 +530,7 @@ static void dsa_copy(void)
     }
     ///////
     // pr_info("descs submitted\n");
-
+    ktime_get_ts64(&i);
     while (!thread_wakeup)
     {
         cpu_relax();
@@ -544,7 +548,7 @@ static void dsa_copy(void)
     {
         pr_info("DSA copy failed\n");
     }
-
+    ktime_get_ts64(&j);
     list_for_each_entry(enabled_wq, &idxd_wqs, list)
     {
         dma_unmap_sgtable(wq_to_dev(enabled_wq->wq), src_sgts[enabled_wq->enabled_wq_num], DMA_TO_DEVICE, 0);
@@ -577,22 +581,18 @@ static void dsa_copy(void)
     cmp = memcmp(vmalloc_area3, vmalloc_area4, PAGE_SIZE * NPAGES);
     cmp ? pr_info("memmove copy fail\n") : pr_info("memmove copy success\n");
 
-    // pr_info("src map time1: %lld\n", timespec64_to_ns(&end) - timespec64_to_ns(&start));
-    // pr_info("dest map time2: %lld\n", timespec64_to_ns(&end5) - timespec64_to_ns(&start5));
-    // pr_info("descs alloc time: %d\n", time);
-    // pr_info("desc alloc time 2: %lld\n", timespec64_to_ns(&end12) - timespec64_to_ns(&start12));
-    // pr_info("DSA end to end time: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&start2));
-    // pr_info("DSA memmove time3: %lld\n", timespec64_to_ns(&start8) - timespec64_to_ns(&start3));
-    // pr_info("sg_table free time: %lld\n", timespec64_to_ns(&end3) - timespec64_to_ns(&end9));
-    // pr_info("memmove time4: %lld\n", timespec64_to_ns(&end4) - timespec64_to_ns(&start4));
+    pr_info("sg_table         free  time: %lld\n", timespec64_to_ns(&f) - timespec64_to_ns(&e));
+    pr_info("sg_table         free time2: %lld\n", timespec64_to_ns(&g) - timespec64_to_ns(&f));
+    pr_info("End to                  End: %lld\n", timespec64_to_ns(&b) - timespec64_to_ns(&a));
+    pr_info("memmove               time4: %lld\n", timespec64_to_ns(&d) - timespec64_to_ns(&c));
 
-    pr_info("sg_table free time: %lld\n", timespec64_to_ns(&f) - timespec64_to_ns(&e));
-    pr_info("sg_table free time2: %lld\n", timespec64_to_ns(&g) - timespec64_to_ns(&f));
-    pr_info("End to End: %lld\n", timespec64_to_ns(&b) - timespec64_to_ns(&a));
-    pr_info("memmove time4: %lld\n", timespec64_to_ns(&d) - timespec64_to_ns(&c));
+    pr_info("before create          time: %lld\n", timespec64_to_ns(&h) - timespec64_to_ns(&a));
+    pr_info("nents calc             time: %lld\n", timespec64_to_ns(&h) - timespec64_to_ns(&m));
+    pr_info("desc create + submit   time: %lld\n", timespec64_to_ns(&i) - timespec64_to_ns(&h));
+    pr_info("desc create            time: %lld\n", timespec64_to_ns(&l) - timespec64_to_ns(&k));
 
-    // pr_info("unmap src time: %lld\n", timespec64_to_ns(&end8) - timespec64_to_ns(&start8));
-    // pr_info("unmap dest time: %lld\n", timespec64_to_ns(&end9) - timespec64_to_ns(&start9));
+    pr_info("after submit -complete time: %lld\n", timespec64_to_ns(&j) - timespec64_to_ns(&i));
+    pr_info("unmap+ .          free time: %lld\n", timespec64_to_ns(&b) - timespec64_to_ns(&j));
 
     return;
 }
@@ -608,19 +608,19 @@ my_init(void)
     }
     INIT_LIST_HEAD(&idxd_desc_lists);
     INIT_LIST_HEAD(&idxd_wqs);
-    pr_info("mykmap module loaded\n");
+    // pr_info("mykmap module loaded\n");
     int init_result = init_region();
     if (init_result < 0)
     {
         return init_result;
     }
-    pr_info("init_region success\n");
+    // pr_info("init_region success\n");
     int dsa_result = init_dsa();
     if (dsa_result < 0)
     {
         return dsa_result;
     }
-    pr_info("init_dsa success\n");
+    // pr_info("init_dsa success\n");
     ktime_get_ts64(&a);
     vmalloc_to_sgtable();
     // pr_info("vmalloc_to_sgtable success\n");
@@ -654,7 +654,7 @@ static void exit_module(void)
     vfree(vmalloc_area5);
     vfree(vmalloc_area6);
 
-    pr_info("exit_module success\n");
+    // pr_info("exit_module success\n");
 }
 
 static void release_channels(void)
@@ -673,7 +673,7 @@ static void __exit my_exit(void)
     list_del_init(&idxd_desc_lists);
     list_del_init(&idxd_wqs);
     exit_module();
-    pr_info("myvmap module unloaded\n");
+    // pr_info("myvmap module unloaded\n");
 }
 
 module_init(my_init);
